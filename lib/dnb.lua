@@ -481,17 +481,18 @@ function Beat:onset_split()
 
 end
 
-function Beat:generate(fname,beats,new_tempo,p_reverse,p_stutter,p_pitch,p_trunc,p_deviation,p_kick,p_snare,p_half,p_reverb,kick_mix,snare_mix)
+function Beat:generate(fname,beats,new_tempo,p_reverse,p_stutter,p_pitch,p_trunc,p_deviation,p_kick,p_snare,p_half,p_reverb,p_stretch,kick_mix,snare_mix)
   new_tempo=new_tempo or self.tempo
   local kick_merge=string.random_filename()
   local snare_merge=string.random_filename()
   local p_global_lfo={math.random(32,64),0}
-  local p_reverse_lfo={math.random(12,24),math.random(1,100)}
-  local p_stutter_lfo={math.random(12,18),math.random(1,100)}
-  local p_pitch_lfo={math.random(12,24),math.random(1,100)}
-  local p_trunc_lfo={math.random(12,24),math.random(1,100)}
-  local p_deviation_lfo={math.random(4,12),math.random(1,100)}
-  local p_half_lfo={math.random(12,18),math.random(1,100)}
+  local p_reverse_lfo={beats/2,math.random(1,100)}
+  local p_stutter_lfo={beats/2,math.random(1,100)}
+  local p_pitch_lfo={beats/2,math.random(1,100)}
+  local p_trunc_lfo={beats/2,math.random(1,100)}
+  local p_deviation_lfo={beats/2,math.random(1,100)}
+  local p_half_lfo={beats/2,math.random(1,100)}
+  local p_stretch_lfo={beats/2,math.random(1,100)}
 
   os.cmd("sox -r "..self.sample_rate.." -c "..self.channels.." "..kick_file.." "..kick_merge.." gain "..kick_mix)
   os.cmd("sox -r "..self.sample_rate.." -c "..self.channels.." "..snare_file.." "..snare_merge.." gain "..snare_mix)
@@ -603,10 +604,10 @@ function Beat:generate(fname,beats,new_tempo,p_reverse,p_stutter,p_pitch,p_trunc
       end
       v=vnew
     end
-    if math.random()<0.0 and self.onset_is_kick[v_original] then
+    if math.random()<p_global*p_stretch/100*math.lfo(current_beat,p_stretch_lfo[1],p_stretch_lfo[2])*2/2 then
       local vnew=v.."stretch.wav"
       if not os.file_exists(vnew) then
-        audio.stretch(v,vnew,audio.length(v)*4)
+        audio.stretch(v,vnew,audio.length(v)*2*math.random(1,2))
       end
       v=vnew
     end
@@ -828,6 +829,7 @@ local p_kick=70
 local p_snare=50
 local p_half=1
 local p_reverb=2
+local p_stretch=1
 local kick_mix=-6
 local snare_mix=-6
 local make_movie=false
@@ -872,6 +874,8 @@ for i,v in ipairs(arg) do
     p_snare=tonumber(arg[i+1]) or p_snare
   elseif string.find(v,"reverb") then
     p_reverb=tonumber(arg[i+1]) or p_reverb
+  elseif string.find(v,"stretch") then
+    p_stretch=tonumber(arg[i+1]) or p_stretch
   elseif string.find(v,"logo") then
     no_logo=true
   elseif string.find(v,"bassline") then
@@ -938,6 +942,9 @@ DESCRIPTION
  
   --reverb value
       probability of adding reverb tail to kick/snare (0-100%, default 2%)
+  
+  --stretch value
+      probability of stretching audio (0-100%, default 2%)
  
   --deviation value
       probability of deviating from base pattern (0-100%, default 30%)
@@ -970,6 +977,6 @@ else
   os.cmd('echo 0 >> /tmp/breaktemp-progress')
   local b=Beat:new({global_lfo=global_lfo,fname=fname,tempo=input_tempo,make_movie=make_movie,make_bassline=make_bassline,no_logo=no_logo})
   b:str()
-  b:generate(fname_out,beats,new_tempo,p_reverse,p_stutter,p_pitch,p_trunc,p_deviation,p_kick,p_snare,p_half,p_reverb,kick_mix,snare_mix)
+  b:generate(fname_out,beats,new_tempo,p_reverse,p_stutter,p_pitch,p_trunc,p_deviation,p_kick,p_snare,p_half,p_reverb,p_stretch,kick_mix,snare_mix)
   os.cmd("rm /tmp/breaktemp-*")
 end

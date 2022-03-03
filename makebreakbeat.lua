@@ -200,10 +200,16 @@ function init()
         {"trunc",2},
         {"half",1},
         {"reverb",5},
+        {"stretch",2},
+        {"kick",50},
+        {"snare",20},
     }
     for _, op in ipairs(break_options) do 
         params:add{type="number",id="break_"..op[1],name=op[1],min=0,max=100,default=op[2]}
     end
+    params:add{type="number",id="break_kickdb",name="kick db",min=-96,max=0,default=-6}
+    params:add{type="number",id="break_snaredb",name="snare db",min=-96,max=0,default=-6}
+    
 
     lattice=lattice_:new()
     lattice_beats=-1
@@ -215,7 +221,6 @@ function init()
             end
             lattice_beats=lattice_beats+1
             if lattice_beats%params:get("break_beats")==0 then
-                print("resetting")
                 ooo.seek(1,0)
             end
             redraw()
@@ -245,7 +250,7 @@ function make_beat()
     making_beat=true
     local fname=""
     local tempo=math.floor(clock.get_tempo())
-    for i=1,100 do 
+    for i=1,1000 do 
         fname=_path.audio.."makebreakbeat/"..tempo.."_"..i..".wav"
         if not util.file_exists(fname) then 
             break
@@ -258,6 +263,8 @@ function make_beat()
     for _, op in ipairs(break_options) do 
         cmd=cmd.." --"..op[1].." "..params:get("break_"..op[1])
     end
+    cmd=cmd.." --snare-mix ".." "..params:get("break_snaredb")
+    cmd=cmd.." --kick-mix ".." "..params:get("break_kickdb")
     cmd=cmd.." &"
     print(cmd)
     clock.run(function()
@@ -314,12 +321,11 @@ function draw_progress()
     screen.move(64,32-5)
     screen.text_center(string.format("generating beat from"))
     screen.move(64,32+5)
-    screen.text_center(string.format("'%s' . . . ",filename))
+    screen.text_center(string.format("'%s'",filename))
     local progress=tonumber(util.os_capture("tail -n1 /tmp/breaktemp-progress"))
     if progress==nil then
         do return end
     end
-    print(progress)
     slider:set_value(progress)
     slider:redraw()
 end
