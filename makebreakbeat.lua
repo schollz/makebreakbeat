@@ -137,9 +137,9 @@ function key(k,z)
   elseif k==3 and z==1 then
     playing=not playing
     if not playing then
-      engine.amp(1)
-    else
       engine.amp(0)
+    else
+      engine.amp(1)
       lattice_beats=-1
       lattice:hard_restart()
     end
