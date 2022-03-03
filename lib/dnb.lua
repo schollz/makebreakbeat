@@ -697,6 +697,8 @@ function Beat:generate(fname,beats,new_tempo,p_reverse,p_stutter,p_pitch,p_trunc
     end
   end
 
+  os.cmd('echo 100 >> /tmp/breaktemp-progress')
+
   -- -- make chords
   -- local cur_dur=0
   -- local total_duration=audio.length(joined_file)
@@ -832,6 +834,7 @@ local make_movie=false
 local make_bassline=false
 local no_logo=false
 local global_lfo=false
+local print_help=false
 for i,v in ipairs(arg) do
   if string.find(v,"input") and string.find(v,"tempo") then
     input_tempo=tonumber(arg[i+1]) or input_tempo
@@ -873,6 +876,8 @@ for i,v in ipairs(arg) do
     no_logo=true
   elseif string.find(v,"bassline") then
     make_bassline=true
+  elseif string.find(v,"help") then
+    print_help=true
   elseif string.find(v,"-b") then
     beats=tonumber(arg[i+1])
   elseif string.find(v,"-t") then
@@ -882,7 +887,7 @@ for i,v in ipairs(arg) do
   end
 end
 
-if #arg<2 then
+if #arg<2 or print_help then
   print([[NAME
  
     dnb.lua - generative drum & bass
@@ -962,6 +967,7 @@ else
   if debugging then
     no_logo=true
   end
+  os.cmd('echo 0 >> /tmp/breaktemp-progress')
   local b=Beat:new({global_lfo=global_lfo,fname=fname,tempo=input_tempo,make_movie=make_movie,make_bassline=make_bassline,no_logo=no_logo})
   b:str()
   b:generate(fname_out,beats,new_tempo,p_reverse,p_stutter,p_pitch,p_trunc,p_deviation,p_kick,p_snare,p_half,p_reverb,kick_mix,snare_mix)
