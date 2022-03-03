@@ -288,19 +288,20 @@ function redraw()
     if loading==true then
         screen.move(64,32)
         screen.text_center("installing aubio and sox . . . ")
-    end
-    if util.file_exists("/tmp/breaktemp-progress")  then
-        draw_progress()     
     else
-        if making_beat==true then
-            ooo.load(1,last_file_generated)
-            making_beat=false
-        end
-        screen.move(64,32-5)
-        screen.text_center("press K2 to generate beat")
-        if last_file_generated~=nil then 
-            screen.move(64,32+5)
-            screen.text_center("press K3 to stop/start beat")
+        if util.file_exists("/tmp/breaktemp-progress")  then
+            draw_progress()     
+        else
+            if making_beat==true then
+                ooo.load(1,last_file_generated)
+                making_beat=false
+            end
+            screen.move(64,32-5)
+            screen.text_center("press K2 to generate beat")
+            if last_file_generated~=nil then 
+                screen.move(64,32+5)
+                screen.text_center("press K3 to stop/start beat")
+            end
         end
     end
     screen.update()
