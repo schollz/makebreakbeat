@@ -14,6 +14,7 @@ this script is a wrapper for [another script I wrote](https://github.com/schollz
 
 - press K2 to generate beat
 - press K3 to toggle playing
+- use any E to change sample
 
 to "break" a beat, this script first determines the tempo of the input file. it then determines onsets based on the tempo (minimum distance being sixteenth notes) and splits the input file into slices by onset markers. it then takes each slice and manipulates the slice with effects with some probability. the manipulated slice is then appended to an audio file at a position quantized to the desired tempo (set by norns clock). all the effect probabilities are available to modify in the parameters.
 
