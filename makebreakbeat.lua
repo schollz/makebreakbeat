@@ -1,4 +1,14 @@
--- make break beats
+-- make break beat v0.0.1
+-- 
+--
+-- llllllll.co/t/makebreakbeat
+--
+--
+--
+--    ▼ instructions below ▼
+--
+-- K2 generates beat 
+-- K3 toggles beat
 
 lattice_=require("lattice")
 UI = require("ui")
