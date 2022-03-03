@@ -192,7 +192,18 @@ function init()
       }
     params:add_file("break_file","load sample",_path.audio.."makebreakbeat/amen_resampled.wav")
     params:add{type="number",id="break_beats",name="beats",min=4,max=128,default=16}
-
+    break_options={
+        {"deviation",10},
+        {"reverse",10},
+        {"stutter",20},
+        {"pitch",5},
+        {"trunc",2},
+        {"half",1},
+        {"reverb",5},
+    }
+    for _, op in ipairs(break_options) do 
+        params:add{type="number",id="break_"..op[1],name=op[1],min=0,max=100,default=op[2]}
+    end
 
     lattice=lattice_:new()
     lattice_beats=-1
@@ -212,6 +223,8 @@ function init()
         division=1/4,
     }
     lattice:start()
+
+    params:default()
 end
 
 function do_startup()
@@ -228,6 +241,7 @@ function make_beat()
     if util.file_exists("/tmp/breaktemp-progress") or making_beat then
         do return end 
     end
+    params:write()
     making_beat=true
     local fname=""
     local tempo=math.floor(clock.get_tempo())
@@ -239,9 +253,13 @@ function make_beat()
     end
     last_file_generated=fname
     local cmd="lua ".._path.code.."makebreakbeat/lib/dnb.lua --no-logo --snare-file /home/we/dust/code/makebreakbeat/lib/snare.wav --kick-file /home/we/dust/code/makebreakbeat/lib/kick.wav "
-    cmd=cmd.." -t "..tempo.." -b "..(params:get("break_beats")+1).." "
+    cmd=cmd.." -t "..tempo.." -b "..(params:get("break_beats")+1)
     cmd=cmd.." -o "..fname.." ".." -i "..params:get("break_file")
+    for _, op in ipairs(break_options) do 
+        cmd=cmd.." --"..op[1].." "..params:get("break_"..op[1])
+    end
     cmd=cmd.." &"
+    print(cmd)
     clock.run(function()
         os.execute(cmd)
     end)
@@ -297,6 +315,9 @@ function draw_progress()
     screen.move(64,32+5)
     screen.text_center(string.format("'%s' . . . ",filename))
     local progress=tonumber(util.os_capture("tail -n1 /tmp/breaktemp-progress"))
+    if progress==nil then
+        do return end
+    end
     print(progress)
     slider:set_value(progress)
     slider:redraw()
