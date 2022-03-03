@@ -386,6 +386,11 @@ function Beat:new (o)
   setmetatable(o,self)
   self.__index=self
 
+  -- resample the file 
+  local new_fname=string.random_filename()
+  os.cmd("sox -r 48000 "..o.fname.." "..new_fname)
+  o.fname=new_fname
+
   -- determine tempo
   o.tempo=audio.tempo(o.fname)
   -- if o.tempo==nil then
