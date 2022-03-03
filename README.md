@@ -30,6 +30,10 @@ to "break" a beat, this script first determines the tempo of the input file. it 
 - kick db:  volume of added kick in dB
 - snare db:  volume of added snare in dB
 
+## notes
+
+this script generates beats *slowly*. if you generate a short beat (8-16 beats) you can continue to generate more and they will automatically be loaded up in sync.
+
 # Install
 
 install with
