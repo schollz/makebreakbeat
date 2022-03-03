@@ -387,9 +387,12 @@ function Beat:new (o)
   self.__index=self
 
   -- resample the file 
-  local new_fname=string.random_filename()
-  os.cmd("sox -r 48000 "..o.fname.." "..new_fname)
-  o.fname=new_fname
+  o.sample_rate,o.channels=audio.get_info(o.fname)
+  if o.sample_rate~=48000 then 
+    local new_fname=string.random_filename()
+    os.cmd("sox -r 48000 "..o.fname.." "..new_fname)
+    o.fname=new_fname
+  end
 
   -- determine tempo
   o.tempo=audio.tempo(o.fname)
