@@ -1,5 +1,5 @@
 -- make break beat v0.0.1
--- 
+--
 --
 -- llllllll.co/t/makebreakbeat
 --
@@ -7,12 +7,11 @@
 --
 --    ▼ instructions below ▼
 --
--- K2 generates beat 
+-- K2 generates beat
 -- K3 toggles beat
 
 lattice_=require("lattice")
-UI = require("ui")
-
+UI=require("ui")
 
 ooo={}
 
@@ -149,7 +148,7 @@ function ooo.pan(i,v)
 end
 
 function ooo.start(i)
-    ooo.seek(i,0)
+  ooo.seek(i,0)
   for j=i*2-1,i*2 do
     softcut.rate_slew_time(j,0)
     softcut.rate(j,ooomem.rates[i]*ooomem.rate_factor[i])
@@ -162,9 +161,9 @@ function ooo.start(i)
 end
 
 function ooo.stop(i)
-    for j=i*2-1,i*2 do
-        softcut.level(j,0)
-    end
+  for j=i*2-1,i*2 do
+    softcut.level(j,0)
+  end
 end
 
 function ooo.seek(i,pos)
@@ -180,162 +179,160 @@ function ooo.load(i,filename)
   ooomem.rate_factor[i]=samplerate/48000
   softcut.buffer_read_stereo(filename,0,ooomem.bnds[i*2-1],-1,0,1)
   ooo.loop(i,0,duration)
-  ooo.seek(i,0)
-  ooo.start(i)
 end
 
 function init()
-    ooo.init(1)
-    playing=true
-    loading=true
-    startup_done=false
-    last_file_generated=nil
+  ooo.init(1)
+  ooo.start(1)
+  playing=true
+  loading=true
+  startup_done=false
+  last_file_generated=nil
 
-    params:add{
-        type='binary',
-        name="make beat",
-        id='break_make',
-        behavior='trigger',
-        action=function(v)
-            make_beat()
-        end
-      }
-    params:add_file("break_file","load sample",_path.audio.."makebreakbeat/amen_resampled.wav")
-    params:add{type="number",id="break_beats",name="beats",min=4,max=128,default=16}
-    break_options={
-        {"deviation",10},
-        {"reverse",10},
-        {"stutter",20},
-        {"pitch",5},
-        {"trunc",2},
-        {"half",1},
-        {"reverb",5},
-        {"stretch",2},
-        {"kick",50},
-        {"snare",20},
-    }
-    for _, op in ipairs(break_options) do 
-        params:add{type="number",id="break_"..op[1],name=op[1],min=0,max=100,default=op[2]}
+  params:add{
+    type='binary',
+    name="make beat",
+    id='break_make',
+    behavior='trigger',
+    action=function(v)
+      make_beat()
     end
-    params:add{type="number",id="break_kickdb",name="kick db",min=-96,max=0,default=-6}
-    params:add{type="number",id="break_snaredb",name="snare db",min=-96,max=0,default=-6}
-    
+  }
+  params:add_file("break_file","load sample",_path.audio.."makebreakbeat/amen_resampled.wav")
+  params:add{type="number",id="break_beats",name="beats",min=4,max=128,default=16}
+  break_options={
+    {"deviation",10},
+    {"reverse",10},
+    {"stutter",20},
+    {"pitch",5},
+    {"trunc",2},
+    {"half",1},
+    {"reverb",5},
+    {"stretch",2},
+    {"kick",50},
+    {"snare",20},
+  }
+  for _,op in ipairs(break_options) do
+    params:add{type="number",id="break_"..op[1],name=op[1],min=0,max=100,default=op[2]}
+  end
+  params:add{type="number",id="break_kickdb",name="kick db",min=-96,max=0,default=-6}
+  params:add{type="number",id="break_snaredb",name="snare db",min=-96,max=0,default=-6}
 
-    lattice=lattice_:new()
-    lattice_beats=-1
-    pattern=lattice:new_pattern{
-        action=function(t) 
-            if not startup_done then
-                startup_done=true 
-                do_startup()
-            end
-            lattice_beats=lattice_beats+1
-            if lattice_beats%params:get("break_beats")==0 then
-                ooo.seek(1,0)
-            end
-            redraw()
-        end,
-        division=1/4,
-    }
-    lattice:start()
+  lattice=lattice_:new()
+  lattice_beats=-1
+  pattern=lattice:new_pattern{
+    action=function(t)
+      if not startup_done then
+        startup_done=true
+        do_startup()
+      end
+      lattice_beats=lattice_beats+1
+      if lattice_beats%params:get("break_beats")==0 then
+        ooo.seek(1,0)
+      end
+      redraw()
+    end,
+    division=1/4,
+  }
+  lattice:start()
 
-    params:default()
+  params:default()
 end
 
 function do_startup()
-    norns.system_cmd(_path.code.."makebreakbeat/lib/install.sh",function(x)
-        loading=false
-    end)
-    os.execute("mkdir -p ".._path.audio.."makebreakbeat")
-    if not util.file_exists(_path.audio.."makebreakbeat/amen_resampled.wav") then
-        os.execute("cp ".._path.code.."makebreakbeat/lib/amen_resampled.wav ".._path.audio.."makebreakbeat/")
-    end
+  norns.system_cmd(_path.code.."makebreakbeat/lib/install.sh",function(x)
+    loading=false
+  end)
+  os.execute("mkdir -p ".._path.audio.."makebreakbeat")
+  if not util.file_exists(_path.audio.."makebreakbeat/amen_resampled.wav") then
+    os.execute("cp ".._path.code.."makebreakbeat/lib/amen_resampled.wav ".._path.audio.."makebreakbeat/")
+  end
 end
 
 function make_beat()
-    if util.file_exists("/tmp/breaktemp-progress") or making_beat then
-        do return end 
+  if util.file_exists("/tmp/breaktemp-progress") or making_beat then
+    do return end
+  end
+  params:write()
+  making_beat=true
+  local fname=""
+  local tempo=math.floor(clock.get_tempo())
+  for i=1,1000 do
+    fname=_path.audio.."makebreakbeat/"..tempo.."_"..i..".wav"
+    if not util.file_exists(fname) then
+      break
     end
-    params:write()
-    making_beat=true
-    local fname=""
-    local tempo=math.floor(clock.get_tempo())
-    for i=1,1000 do 
-        fname=_path.audio.."makebreakbeat/"..tempo.."_"..i..".wav"
-        if not util.file_exists(fname) then 
-            break
-        end
-    end
-    last_file_generated=fname
-    local cmd="lua ".._path.code.."makebreakbeat/lib/dnb.lua --no-logo --snare-file /home/we/dust/code/makebreakbeat/lib/snare.wav --kick-file /home/we/dust/code/makebreakbeat/lib/kick.wav "
-    cmd=cmd.." -t "..tempo.." -b "..(params:get("break_beats")+1)
-    cmd=cmd.." -o "..fname.." ".." -i "..params:get("break_file")
-    for _, op in ipairs(break_options) do 
-        cmd=cmd.." --"..op[1].." "..params:get("break_"..op[1])
-    end
-    cmd=cmd.." --snare-mix ".." "..params:get("break_snaredb")
-    cmd=cmd.." --kick-mix ".." "..params:get("break_kickdb")
-    cmd=cmd.." &"
-    print(cmd)
-    clock.run(function()
-        os.execute(cmd)
-    end)
-    print("running command!")
+  end
+  last_file_generated=fname
+  local cmd="lua ".._path.code.."makebreakbeat/lib/dnb.lua --no-logo --snare-file /home/we/dust/code/makebreakbeat/lib/snare.wav --kick-file /home/we/dust/code/makebreakbeat/lib/kick.wav "
+  cmd=cmd.." -t "..tempo.." -b "..(params:get("break_beats")+1)
+  cmd=cmd.." -o "..fname.." ".." -i "..params:get("break_file")
+  for _,op in ipairs(break_options) do
+    cmd=cmd.." --"..op[1].." "..params:get("break_"..op[1])
+  end
+  cmd=cmd.." --snare-mix ".." "..params:get("break_snaredb")
+  cmd=cmd.." --kick-mix ".." "..params:get("break_kickdb")
+  cmd=cmd.." &"
+  print(cmd)
+  clock.run(function()
+    os.execute(cmd)
+  end)
+  print("running command!")
 end
 
 function key(k,z)
-    if k==2 and z==1 then
-        make_beat()
-    elseif k==3 and z==1 then
-        playing=not playing 
-        if not playing then
-            ooo.stop(1)
-        else
-            ooo.start(1)
-            lattice_beats=-1
-            lattice:hard_restart()
-        end
+  if k==2 and z==1 then
+    make_beat()
+  elseif k==3 and z==1 then
+    playing=not playing
+    if not playing then
+      ooo.stop(1)
+    else
+      ooo.start(1)
+      lattice_beats=-1
+      lattice:hard_restart()
     end
+  end
 
 end
 
 function redraw()
-    screen.clear()
-    screen.level(15)
-    if loading==true then
-        screen.move(64,32)
-        screen.text_center("installing aubio and sox . . . ")
+  screen.clear()
+  screen.level(15)
+  if loading==true then
+    screen.move(64,32)
+    screen.text_center("installing aubio and sox . . . ")
+  else
+    if util.file_exists("/tmp/breaktemp-progress") then
+      draw_progress()
     else
-        if util.file_exists("/tmp/breaktemp-progress")  then
-            draw_progress()     
-        else
-            if making_beat==true then
-                ooo.load(1,last_file_generated)
-                making_beat=false
-            end
-            screen.move(64,32-5)
-            screen.text_center("press K2 to generate beat")
-            if last_file_generated~=nil then 
-                screen.move(64,32+5)
-                screen.text_center("press K3 to stop/start beat")
-            end
-        end
+      if making_beat==true then
+        ooo.load(1,last_file_generated)
+        making_beat=false
+      end
+      screen.move(64,32-5)
+      screen.text_center("press K2 to generate beat")
+      if last_file_generated~=nil then
+        screen.move(64,32+5)
+        screen.text_center("press K3 to stop/start beat")
+      end
     end
-    screen.update()
+  end
+  screen.update()
 end
 
-slider = UI.Slider.new(4,55,118,8,0,0,100,{},"right")
+slider=UI.Slider.new(4,55,118,8,0,0,100,{},"right")
 slider.label="progress"
 function draw_progress()
-    local _,filename,_=string.match(params:get("break_file"),"(.-)([^\\/]-%.?([^%.\\/]*))$")
-    screen.move(64,32-5)
-    screen.text_center(string.format("generating beat from"))
-    screen.move(64,32+5)
-    screen.text_center(string.format("'%s'",filename))
-    local progress=tonumber(util.os_capture("tail -n1 /tmp/breaktemp-progress"))
-    if progress==nil then
-        do return end
-    end
-    slider:set_value(progress)
-    slider:redraw()
+  local _,filename,_=string.match(params:get("break_file"),"(.-)([^\\/]-%.?([^%.\\/]*))$")
+  screen.move(64,32-5)
+  screen.text_center(string.format("generating beat from"))
+  screen.move(64,32+5)
+  screen.text_center(string.format("'%s'",filename))
+  local progress=tonumber(util.os_capture("tail -n1 /tmp/breaktemp-progress"))
+  if progress==nil then
+    do return end
+  end
+  slider:set_value(progress)
+  slider:redraw()
 end
