@@ -4,7 +4,7 @@ make break beats.
 
 ![img](https://user-images.githubusercontent.com/6550035/156637615-a0363244-2186-4604-b75f-4c1936982e24.png)
 
-this script is a wrapper for [another script I wrote](https://github.com/schollz/dnb.lua/) that generates breakbeats with [sox](http://sox.sourceforge.net/) and [aubio](https://aubio.org/). the purpose is to generate and play breakbeats but you can use it to mangle all sorts of audio.
+this script is a wrapper for [another script I wrote](https://github.com/schollz/dnb.lua/) that generates breakbeats from a drum sample. I made this to learn more about [sox](http://sox.sourceforge.net/) and [aubio](https://aubio.org/) as all the audio is generated with those tools.
 
 # Requirements
 
