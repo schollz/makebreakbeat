@@ -1,4 +1,4 @@
--- make break beat v0.0.1
+-- make break beat v0.0.2
 --
 --
 -- llllllll.co/t/makebreakbeat
@@ -17,6 +17,7 @@ UI=require("ui")
 engine.name="Makebreakbeat"
 
 function init()
+  print("v0.0.2")
   playing=true
   loading=true
   startup_done=false

@@ -1,9 +1,18 @@
 #!/bin/bash
 
+# clear previous workloads
+rm -f /tmp/breaktemp-*
+
 if ! command -v sox &> /dev/null
 then
 	echo "installing sox"
 	sudo apt-get install -y sox
+fi
+
+if ! command -v sox &> /dev/null
+then
+	echo "installing sox from static compiled version"
+	cd /tmp && wget https://github.com/schollz/makebreakbeat/releases/download/v0.1.0/sox && chmod +x sox && sudo mv sox /usr/local/bin/
 fi
 
 if ! command -v aubioonset &> /dev/null
