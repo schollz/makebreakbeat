@@ -5,6 +5,7 @@ math.randomseed(os.time())
 local snare_file="snare.wav"
 local kick_file="kick.wav"
 local debugging=false
+local save_onset=false
 local charset={}
 
 -- qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890
@@ -386,9 +387,9 @@ function Beat:new (o)
   setmetatable(o,self)
   self.__index=self
 
-  -- resample the file 
+  -- resample the file
   o.sample_rate,o.channels=audio.get_info(o.fname)
-  if o.sample_rate~=48000 then 
+  if o.sample_rate~=48000 then
     local new_fname=string.random_filename()
     os.cmd("sox -r 48000 "..o.fname.." "..new_fname)
     o.fname=new_fname
@@ -448,8 +449,8 @@ function Beat:onset_split()
       local s=self.onsets[i-1]
       local onset_name=string.random_filename(s..".wav")
       local e=(self.onsets[i]-self.onsets[i-1])
-      local sn=math.round(e/(60/self.tempo/4))
-      e=sn*60/self.tempo/4+0.02
+      -- local sn=math.floor(e/(60/self.tempo/4))
+      -- e=sn*60/self.tempo/4+0.02
       if i==#self.onsets then
         os.cmd("sox "..self.fname.." "..onset_name.." trim "..s)
         if self.make_movie then
@@ -468,7 +469,10 @@ function Beat:onset_split()
           os.cmd("audiowaveform -i "..concat_file.." -o "..onset_name..".png --background-color ffffff00 --waveform-color 545454 -w 960 -h 512 --no-axis-labels --pixels-per-second "..math.floor(960/duration).." > /dev/null 2>&1")
         end
       end
-      -- os.cmd("cp "..onset_name.." onset"..i..".wav")
+      if save_onset then
+        print(i,e/(60/self.tempo/4))
+        os.cmd("cp "..onset_name.." onset"..i..".wav")
+      end
       os.cmd("sox "..onset_name.." "..lowpass_file.." lowpass 200")
       onset_stat={bd=false,sd=false,bd_metric=audio.mean_norm(lowpass_file) or 0}
       os.cmd("sox "..onset_name.." "..lowpass_file.." lowpass 400 highpass 200")
@@ -848,6 +852,8 @@ local print_help=false
 for i,v in ipairs(arg) do
   if string.find(v,"input") and string.find(v,"tempo") then
     input_tempo=tonumber(arg[i+1]) or input_tempo
+  elseif string.find(v,"save") and string.find(v,"onset") then
+    save_onset=true
   elseif string.find(v,"make") and string.find(v,"movie") then
     make_movie=true
   elseif string.find(v,"-i") and fname=="sample.aiff" then
@@ -962,7 +968,7 @@ DESCRIPTION
  
   --kick-mix value
       volume of added kick in dB (default -6)
-
+ 
   --kick-file value
       location to kick (default kick.wav)
  
@@ -971,14 +977,18 @@ DESCRIPTION
  
   --snare-mix value
       volume of added snare in dB (default -6)
-
+ 
   --snare-file value
       location to snare (default snare.wav)
  
   --bassline
       add bassline
+ 
+  --saveonset
+      save each onset in current folder
 ]])
 else
+  os.cmd("rm -f /tmp/breaktemp-*")
   if debugging then
     no_logo=true
   end
