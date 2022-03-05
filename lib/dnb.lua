@@ -1,6 +1,8 @@
 #!/usr/bin/env lua
 
--- infinitedigits v1.0.0
+-- infinitedigits
+-- v1.0.0 first version
+-- v1.0.1 allow filenames with spaces
 
 math.randomseed(os.time())
 
@@ -829,6 +831,7 @@ function Beat:str(newtempo)
   end
 end
 
+os.cmd("rm -f /tmp/breaktemp-*")
 local fname="sample.aiff"
 local fname_out="result.wav"
 local beats=16
@@ -860,6 +863,19 @@ for i,v in ipairs(arg) do
     make_movie=true
   elseif string.find(v,"-i") and fname=="sample.aiff" then
     fname=arg[i+1]
+    for j=2,100 do
+      local a=arg[i+j]
+      if string.find(a,"-") or a==nil then
+        break
+      end
+      fname=fname.." "..a
+    end
+    if string.find(fname," ") then
+      local fname2=string.random_filename()
+      print("cp '"..fname.."' "..fname2)
+      os.cmd("cp '"..fname.."' "..fname2)
+      fname=fname2
+    end
   elseif string.find(v,"-o") then
     fname_out=arg[i+1]
   elseif string.find(v,"reverse") then
@@ -995,7 +1011,6 @@ else
   elseif os.capture("command -v sox")=="" then
     print("need to install sox first")
   else
-    os.cmd("rm -f /tmp/breaktemp-*")
     if debugging then
       no_logo=true
     end
