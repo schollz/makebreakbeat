@@ -1,4 +1,4 @@
--- make break beat v0.0.2
+-- make break beat v1.0.0
 --
 --
 -- llllllll.co/t/makebreakbeat
@@ -9,6 +9,7 @@
 --
 -- K2 generates beat
 -- K3 toggles beat
+-- E changes sample
 
 lattice_=require("lattice")
 
@@ -17,7 +18,7 @@ UI=require("ui")
 engine.name="Makebreakbeat"
 
 function init()
-  print("v0.0.2")
+  print("v1.0.0")
   playing=true
   loading=true
   startup_done=false

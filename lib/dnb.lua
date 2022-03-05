@@ -1,5 +1,7 @@
 #!/usr/bin/env lua
 
+-- infinitedigits v1.0.0
+
 math.randomseed(os.time())
 
 local snare_file="snare.wav"
@@ -988,13 +990,19 @@ DESCRIPTION
       save each onset in current folder
 ]])
 else
-  os.cmd("rm -f /tmp/breaktemp-*")
-  if debugging then
-    no_logo=true
+  if os.capture("command -v aubioonset")=="" then
+    print("need to install aubioonset first")
+  elseif os.capture("command -v sox")=="" then
+    print("need to install sox first")
+  else
+    os.cmd("rm -f /tmp/breaktemp-*")
+    if debugging then
+      no_logo=true
+    end
+    os.cmd('echo 0 >> /tmp/breaktemp-progress')
+    local b=Beat:new({global_lfo=global_lfo,fname=fname,tempo=input_tempo,make_movie=make_movie,make_bassline=make_bassline,no_logo=no_logo})
+    b:str()
+    b:generate(fname_out,beats,new_tempo,p_reverse,p_stutter,p_pitch,p_trunc,p_deviation,p_kick,p_snare,p_half,p_reverb,p_stretch,kick_mix,snare_mix)
+    os.cmd("rm /tmp/breaktemp-*")
   end
-  os.cmd('echo 0 >> /tmp/breaktemp-progress')
-  local b=Beat:new({global_lfo=global_lfo,fname=fname,tempo=input_tempo,make_movie=make_movie,make_bassline=make_bassline,no_logo=no_logo})
-  b:str()
-  b:generate(fname_out,beats,new_tempo,p_reverse,p_stutter,p_pitch,p_trunc,p_deviation,p_kick,p_snare,p_half,p_reverb,p_stretch,kick_mix,snare_mix)
-  os.cmd("rm /tmp/breaktemp-*")
 end
