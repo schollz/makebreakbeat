@@ -398,7 +398,7 @@ function Beat:new (o)
   end
 
   -- determine tempo
-  o.tempo=audio.tempo(o.fname)
+  o.tempo=o.tempo or audio.tempo(o.fname)
   -- if o.tempo==nil then
   --   local s=os.capture("aubio tempo "..o.fname)
   --   o.tempo=math.round(tonumber(s:match("%S+")))
