@@ -2,7 +2,7 @@
 
 # clear previous workloads
 rm -f /tmp/breaktemp-*
-
+sudo ldconfig
 if ! command -v sox &> /dev/null
 then
 	echo "installing sox"
