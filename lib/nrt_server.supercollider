@@ -50,7 +50,7 @@ SynthDef("reverberate", {
 SynthDef("tapedeck", {
 	arg out=0,  dur=30,
 	amp=0.5,tape_wet=0.9,tape_bias=0.9,saturation=0.9,drive=0.8,
-	tape_oversample=3,mode=0,
+	tape_oversample=1,mode=0,
 	dist_wet=0.07,drivegain=0.5,dist_bias=0.5,lowgain=0.1,highgain=0.1,
 	shelvingfreq=600,dist_oversample=1,
 	hpf=60,hpfqr=0.6,
@@ -127,7 +127,7 @@ mainServer.waitForBoot({
 			"finished".postln;
 		}, '/score',recvPort:57113);
 		1.wait;
-		File.new("/tmp/mangler/breaktemp-scready", "w");
+		File.new("/tmp/nrt-scready", "w");
 		"ready".postln;
 	}.play;
 });

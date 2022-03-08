@@ -582,7 +582,7 @@ function run()
         os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
         os.cmd("sclang nrt_server.supercollider  &")
       end
-      while not os.file_exists("/tmp/mangler/breaktemp-scready") do 
+      while not os.file_exists("/tmp/nrt-scready") do 
         os.execute("sleep 0.1")
       end
       -- convert to 48000
@@ -608,7 +608,7 @@ function run()
         +math.floor(total_beats*p_jump/100)
         +math.floor(total_beats*p_reverse/100)
         +math.floor(total_beats*p_revreverb/100)
-        +math.floor(total_beats*p_stutter/100/2)*2
+        +math.floor(total_beats*p_stutter/100/2)*2+3
 
       local fname_original=fname
       -- copy and pitch and paste

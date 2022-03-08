@@ -17,6 +17,11 @@ UI=require("ui")
 
 engine.name="Makebreakbeat"
 
+function os.cmd(cmd)
+  print(cmd)
+  os.execute(cmd.." 2>&1")
+end
+
 function init()
   print("v2.0.0")
   playing=true
@@ -40,7 +45,7 @@ function init()
     {"stutter",20},
     {"pitch",5},
     {"reverb",5},
-    {"rereverb",5},
+    {"revreverb",5},
     {"jump",20},
   }
   for _,op in ipairs(break_options) do
@@ -85,6 +90,13 @@ function do_startup()
   if not util.file_exists(_path.audio.."makebreakbeat/amen_resampled.wav") then
     os.execute("cp ".._path.code.."makebreakbeat/lib/amen_resampled.wav ".._path.audio.."makebreakbeat/")
   end
+  clock.run(function()
+    os.cmd("rm -rf /tmp/mangler")
+    os.cmd("pkill -f 'nrt_server'")
+    os.cmd("rm -f /tmp/nrt-scready")
+    os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
+    os.cmd("cd /home/we/dust/code/makebreakbeat/lib && sclang nrt_server.supercollider &")
+  end)
 end
 
 function make_beat()
@@ -104,7 +116,7 @@ function make_beat()
       break
     end
   end
-  local cmd="cd ".._path.code.."makebreakbeat/lib/ && lua mangler.lua"
+  local cmd="cd ".._path.code.."makebreakbeat/lib/ && lua mangler.lua --server-started"
   cmd=cmd.." -t "..tempo.." -b "..params:get("break_beats")
   cmd=cmd.." -o "..fname.." ".." -i "..params:get("break_file")
   for _,op in ipairs(break_options) do
@@ -161,7 +173,7 @@ function redraw()
       draw_progress()
     else
       if making_beat==true then
-        debounce_load=1
+        debounce_load=4
         making_beat=false
       end
       screen.move(64,32-5)
@@ -189,4 +201,11 @@ function draw_progress()
   end
   slider:set_value(progress)
   slider:redraw()
+end
+
+function cleanup()
+  os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
+  os.cmd("rm -f /tmp/nrt-scready")
+  os.cmd("rm -rf /tmp/mangler")
+  os.cmd("pkill -f 'nrt_server'")
 end
