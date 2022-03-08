@@ -457,7 +457,7 @@ function audio.supercollider_effect(fname,effect)
   if effect=="reverberate" then 
     durationScaling=4
   end
-  os.cmd(string.format('sendosc --host 127.0.0.1 --addr "/score" --port 57113 --recv-port 57888 -s %s -s %s -s %s -s %s -s 57888',fname,fname2,effect,durationScaling))
+  os.cmd(string.format('/home/we/dust/code/makebreakbeat/lib/sendosc --host 127.0.0.1 --addr "/score" --port 57113 --recv-port 57888 -s %s -s %s -s %s -s %s -s 57888',fname,fname2,effect,durationScaling))
   return fname2
 end
 
@@ -579,7 +579,7 @@ function run()
       os.cmd("mkdir -p /tmp/mangler")
       os.cmd("echo 0 > /tmp/mangler/breaktemp-progress")
       if not server_started then 
-        os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
+        os.cmd('/home/we/dust/code/makebreakbeat/lib/sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
         os.cmd("sclang nrt_server.supercollider  &")
       end
       while not os.file_exists("/tmp/nrt-scready") do 
@@ -711,7 +711,7 @@ function run()
       end
       os.cmd("mv "..fname.." "..fname_out)
       if not server_started then 
-        os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
+        os.cmd('/home/we/dust/code/makebreakbeat/lib/sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
       end
       os.cmd("rm -rf /tmp/mangler")
     end

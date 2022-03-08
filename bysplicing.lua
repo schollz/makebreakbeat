@@ -1,5 +1,5 @@
--- make break beat v2.0.0
---
+-- makebreakbeat v2.0.0
+-- bysplicing
 --
 -- llllllll.co/t/makebreakbeat
 --
@@ -91,10 +91,11 @@ function do_startup()
     os.execute("cp ".._path.code.."makebreakbeat/lib/amen_resampled.wav ".._path.audio.."makebreakbeat/")
   end
   clock.run(function()
+    os.cmd("chmod +x /home/we/dust/code/makebreakbeat/lib/sendosc")
     os.cmd("rm -rf /tmp/mangler")
     os.cmd("pkill -f 'nrt_server'")
     os.cmd("rm -f /tmp/nrt-scready")
-    os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
+    os.cmd('/home/we/dust/code/makebreakbeat/lib/sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
     os.cmd("cd /home/we/dust/code/makebreakbeat/lib && sclang nrt_server.supercollider &")
   end)
 end
@@ -161,7 +162,7 @@ end
 function redraw()
   screen.clear()
   screen.level(15)
-  local icon=UI.PlaybackIcon.new(8,8,6,4)
+  local icon=UI.PlaybackIcon.new(1,1,6,4)
   icon.status=playing and 1 or 4
   icon:redraw()
   if last_file_generated~=nil then
@@ -208,7 +209,7 @@ function draw_progress()
 end
 
 function cleanup()
-  os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
+  os.cmd('/home/we/dust/code/makebreakbeat/lib/sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
   os.cmd("rm -f /tmp/nrt-scready")
   os.cmd("rm -rf /tmp/mangler")
   os.cmd("pkill -f 'nrt_server'")

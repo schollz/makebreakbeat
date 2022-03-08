@@ -1,5 +1,5 @@
--- make break beat v1.0.0
---
+-- makebreakbeat v2.0.0
+-- bybuilding
 --
 -- llllllll.co/t/makebreakbeat
 --
@@ -152,7 +152,7 @@ end
 function redraw()
   screen.clear()
   screen.level(15)
-  local icon=UI.PlaybackIcon.new(8,8,6,4)
+  local icon=UI.PlaybackIcon.new(1,1,6,4)
   icon.status=playing and 1 or 4
   icon:redraw()
   if last_file_generated~=nil then
