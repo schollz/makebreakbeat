@@ -445,13 +445,17 @@ function audio.supercollider_effect(fname,effect)
 end
 
 
-os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
-os.cmd("sclang nrt_server.sc > /dev/null 2>&1 &")
-os.cmd("sleep 3")
 os.cmd("rm -f /tmp/breaktemp-*")
-local fname="172-32-100.wav"
+os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
+os.cmd("sclang nrt_server.supercollider &")
+while not os.file_exists("/tmp/breaktemp-scready") do 
+  os.execute("sleep 0.1")
+end
+-- os.cmd("sclang nrt_server.supercollider > /dev/null 2>&1 &")
+-- local fname="172-32-100.wav"
 -- local fname="Bpm124_Blink01_PL_key_bpm124.wav"
--- local fname="amen_resampled.wav"
+local fname="amen_resampled.wav"
+local target_beats=32
 local bpm=audio.tempo(fname)
 fname=audio.silence_trim(fname)
 print("bpm guess",bpm)
@@ -459,17 +463,27 @@ fname=audio.silence_add(fname,0.1)
 local beats=math.floor(audio.length(fname)/(60/bpm))
 fname=audio.trim(fname,0,beats*60/bpm)
 beats=audio.length(fname)/(60/bpm)
-print(beats)
+while beats<target_beats do 
+  fname=audio.repeat_n(fname,2)
+  beats=audio.length(fname)/(60/bpm)
+  print(beats)
+end
+fname=audio.trim(fname,0,target_beats*60/bpm)
 
-fname=audio.repeat_n(fname,4)
 local total_beats=math.floor(audio.length(fname)/(60/bpm))
 print(total_beats)
 os.cmd("cp "..fname.." original.wav")
 
 
 local fname_original=fname
+local p_pitch=0.1
+local p_reverse=0.1
+local p_jump=0.3
+local p_stutter=0.0--15
+local p_reverb=0.02
+local p_revreverb=0.1
 -- copy and pitch and paste
-for i=1,3 do 
+for i=1,math.floor(total_beats*p_pitch) do 
 	local start_beat=math.random(8,total_beats-8)
 	local length_beat=math.random(1,4)/8
 	local paste_beat=start_beat
@@ -478,15 +492,15 @@ for i=1,3 do
 	fname=audio.paste(fname,piece,60/bpm*paste_beat,crossfade)
 end
 -- basic copy and paste
-for i=1,40 do 
+for i=1,math.floor(total_beats*p_jump) do 
 	local start_beat=math.random(4,total_beats-4)*2
 	local length_beat=math.random(1,3)*2
-  local paste_beat=math.random(8,total_beats-length_beat/2-8)*2
+  local paste_beat=math.random(2,total_beats-length_beat/2-2)*2
   local crossfade=0.05
 	fname=audio.copy_and_paste(fname,60/bpm/2*start_beat,60/bpm/2*(start_beat+length_beat),60/bpm/2*paste_beat,crossfade)
 end
 -- copy and reverse and paste
-for i=1,4 do 
+for i=1,math.floor(total_beats*p_reverse) do 
   local start_beat=math.random(2,total_beats-2)*2
   local length_beat=math.random(1,3)
   local paste_beat=math.random(2,math.floor(total_beats-total_beats/2-4))*2
@@ -494,8 +508,8 @@ for i=1,4 do
   local piece=audio.reverse(audio.trim(fname,60/bpm/2*start_beat-crossfade,60/bpm/2*length_beat+crossfade*2))
   fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
 end
--- copy and reverberate and paste
-for i=1,4 do 
+-- copy and reverberate and reverse and paste
+for i=1,math.floor(total_beats*p_revreverb) do 
   local start_beat=math.random(3,total_beats-3)
   local length_beat=math.random(1,2)
   local paste_beat=math.random(2,math.floor(total_beats-total_beats/2-4))*2
@@ -503,6 +517,16 @@ for i=1,4 do
   local piece=audio.trim(fname_original,60/bpm*start_beat-crossfade,60/bpm/4*length_beat+crossfade*2)
   piece=audio.supercollider_effect(piece,"reverberate")
   piece=audio.reverse(piece)
+  fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
+end
+-- copy and reverberate and paste
+for i=1,math.floor(total_beats*p_reverb) do 
+  local start_beat=math.random(3,total_beats-3)
+  local length_beat=math.random(1,2)
+  local paste_beat=math.random(2,math.floor(total_beats-total_beats/2-4))*2
+  local crossfade=0.005
+  local piece=audio.trim(fname_original,60/bpm*start_beat-crossfade,60/bpm/4*length_beat+crossfade*2)
+  piece=audio.supercollider_effect(piece,"reverberate")
   fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
 end
 -- -- copy and stretch and paste
@@ -515,7 +539,7 @@ end
 --   fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
 -- end
 -- copy and stutter and paste
-for i=1,3 do 
+for i=1,math.floor(total_beats*p_stutter) do 
   local crossfade=0.005
   local beat_start=math.random(4,total_beats-4)
   local piece=audio.stutter(fname_original,60/bpm/4,60/bpm*beat_start,12,crossfade,0.001,nil)
@@ -537,6 +561,9 @@ end
 --   fname=audio.paste(fname,piece,60/bpm/4*math.random(16,total_beats*4-16),crossfade)
 -- end
 -- cleanup
+if true then 
+  fname=audio.supercollider_effect(fname,"tapedeck")
+end
 os.cmd("cp "..fname.." mangled.wav")
 os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
 
