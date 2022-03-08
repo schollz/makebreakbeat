@@ -442,23 +442,23 @@ os.cmd("cp "..fname.." original.wav")
 
 
 -- copy and pitch and paste
-for i=1,10 do 
-	local start_beat=math.random(8,total_beats-8)
-	local length_beat=math.random(1,4)/8
-	local paste_beat=start_beat
-	local crossfade=0.005
-	local piece=audio.pitch(audio.trim(fname,60/bpm*start_beat-crossfade,60/bpm*length_beat+crossfade*2),2)
-	fname=audio.paste(fname,piece,60/bpm*paste_beat,crossfade)
-end
+-- for i=1,10 do 
+-- 	local start_beat=math.random(8,total_beats-8)
+-- 	local length_beat=math.random(1,4)/8
+-- 	local paste_beat=start_beat
+-- 	local crossfade=0.005
+-- 	local piece=audio.pitch(audio.trim(fname,60/bpm*start_beat-crossfade,60/bpm*length_beat+crossfade*2),2)
+-- 	fname=audio.paste(fname,piece,60/bpm*paste_beat,crossfade)
+-- end
 -- basic copy and paste
 for i=1,30 do 
-	local start_beat=math.random(8,total_beats-8)
-	local length_beat=math.random(2,4)
-	local paste_beat=math.random(4,total_beats-4-length_beat)
-	fname=audio.copy_and_paste(fname,60/bpm*start_beat,60/bpm*(start_beat+length_beat),60/bpm*paste_beat)
+	local start_beat=math.random(8,total_beats*2-8)
+	local length_beat=math.random(4,8)
+	local paste_beat=math.random(4,total_beats*2-4-length_beat)
+	fname=audio.copy_and_paste(fname,60/bpm/2*start_beat,60/bpm/2*(start_beat+length_beat),60/bpm/2*paste_beat)
 end
 -- copy and reverse and paste
-for i=1,10 do 
+for i=1,5 do 
 	local start_beat=math.random(8,total_beats-8)
 	local length_beat=math.random(1,3)
 	local paste_beat=math.random(4,total_beats-4-length_beat)
@@ -467,20 +467,12 @@ for i=1,10 do
 	fname=audio.paste(fname,piece,60/bpm*paste_beat,crossfade)
 end
 -- copy and stutter and paste
+local before_stutter=fname
 for i=1,3 do 
 	local crossfade=0.005
 	local beat_start=math.random(4,total_beats-4)
-	local piece=audio.stutter(fname,60/bpm/4,60/bpm*beat_start,16,crossfade,0.001)
+	local piece=audio.stutter(before_stutter,60/bpm/4,60/bpm*beat_start,16,crossfade,0.001)
 	fname=audio.paste(fname,piece,60/bpm*4*math.random(1,8),crossfade)
-end
--- copy and reverse and paste
-for i=1,10 do 
-	local start_beat=math.random(8,total_beats-8)
-	local length_beat=math.random(1,3)
-	local paste_beat=math.random(4,total_beats-4-length_beat)
-	local crossfade=0.1
-	local piece=audio.reverse(audio.trim(fname,60/bpm*start_beat-crossfade,60/bpm*length_beat+crossfade*2))
-	fname=audio.paste(fname,piece,60/bpm*paste_beat,crossfade)
 end
 os.cmd("cp "..fname.." mangled.wav")
 
