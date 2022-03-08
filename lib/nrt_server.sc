@@ -91,9 +91,5 @@ mainServer.waitForBoot({
 		score.value(inFile,outFile,synthDefinition,durationScaling,oscCallbackPort);
 		"finished".postln;
 	}, '/score',recvPort:57113);
-
-	// var outfile=thisProcess.nowExecutingPath.dirname++"/out.wav";
-	// var inFile=thisProcess.nowExecutingPath.dirname++"/in.wav";
-
 });
 )
