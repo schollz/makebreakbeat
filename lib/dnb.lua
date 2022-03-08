@@ -394,11 +394,9 @@ function Beat:new (o)
 
   -- resample the file
   o.sample_rate,o.channels=audio.get_info(o.fname)
-  if o.sample_rate~=48000 then
-    local new_fname=string.random_filename()
-    os.cmd("sox -r 48000 "..o.fname.." "..new_fname)
-    o.fname=new_fname
-  end
+  local new_fname=string.random_filename()
+  os.cmd("sox -r 48000 -c 2 "..o.fname.." "..new_fname)
+  o.fname=new_fname
 
   -- determine tempo
   o.tempo=o.tempo or audio.tempo(o.fname)
@@ -615,7 +613,7 @@ function Beat:generate(fname,beats,new_tempo,p_reverse,p_stutter,p_pitch,p_trunc
       -- slow down
       local vnew=v.."half.wav"
       if not os.file_exists(vnew) then
-        os.cmd("sox "..v.." "..vnew.." speed "..(0.5))
+        os.cmd("sox "..v.." "..vnew.." speed 0.5 rate -v 48k")
       end
       v=vnew
     end
@@ -741,7 +739,7 @@ function Beat:generate(fname,beats,new_tempo,p_reverse,p_stutter,p_pitch,p_trunc
   os.cmd("sox "..joined_file.." "..fname.." trim 0 "..final_length.." highpass 80 contrast")
   if new_tempo~=self.tempo then
     local v=string.random_filename()
-    os.cmd("sox "..fname.." "..v.." speed "..new_tempo/self.tempo)
+    os.cmd("sox "..fname.." "..v.." speed "..new_tempo/self.tempo.." rate -v 48k")
     os.cmd("mv "..v.." "..fname)
   end
   print("generated "..beats.." beats into '"..fname.."' @ "..(new_tempo or self.tempo).." bpm")

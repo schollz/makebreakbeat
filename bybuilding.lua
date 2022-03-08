@@ -19,7 +19,7 @@ engine.name="Makebreakbeat"
 
 function init()
   print("v1.0.0")
-  playing=true
+  playing=false
   loading=true
   startup_done=false
   last_file_generated=nil
@@ -152,6 +152,9 @@ end
 function redraw()
   screen.clear()
   screen.level(15)
+  local icon=UI.PlaybackIcon.new(8,8,6,4)
+  icon.status=playing and 1 or 4
+  icon:redraw()
   if last_file_generated~=nil then
     screen.move(64,32-15)
     screen.text_center(last_tempo_generated.."_"..last_file_generated)
@@ -166,6 +169,7 @@ function redraw()
       if making_beat==true then
         debounce_load=1
         making_beat=false
+        playing=true
       end
       screen.move(64,32-5)
       screen.text_center("press K2 to generate beat")

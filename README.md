@@ -1,10 +1,10 @@
 # makebreakbeat
 
-make break beats.
+make break beats, by building or splicing.
 
 ![img](https://user-images.githubusercontent.com/6550035/156637615-a0363244-2186-4604-b75f-4c1936982e24.png)
 
-this script is a wrapper for [another script I wrote](https://github.com/schollz/dnb.lua/) that generates breakbeats from a drum sample. I made this to learn more about [sox](http://sox.sourceforge.net/) and [aubio](https://aubio.org/) as all the audio is generated with those tools.
+this script is a wrapper for [another script I wrote](https://github.com/schollz/dnb.lua/) that "breaks" a sample. you can use it to make "breakbeat" style drums or simply make glitch loops from any sample.
 
 # Requirements
 
@@ -12,9 +12,17 @@ this script is a wrapper for [another script I wrote](https://github.com/schollz
 
 # Documentation
 
+this script is actually *two* scripts - *makebreakbeat/bybuilding* and *makebreakbeat/bysplicing*. the name of each script corresponds to a different methods of breaking the beat. in both the controls and UI is exactly the same:
+
 - press K2 to generate beat
 - press K3 to toggle playing
 - use any E to change sample
+
+the scripts themselves are separated because it was easier.
+
+## make breakbeats *by building*
+
+the *bybuilding* script splits a file into pieces based on the positions of the onsets and then rebuilds the audio one piece at a time, by selecting a piece and adding effects to it and then appending it to the file.
 
 to "break" a beat, this script first determines the tempo of the input file. it then determines onsets based on the tempo (minimum distance being sixteenth notes) and splits the input file into slices by onset markers. it then takes each slice and manipulates the slice with effects with some probability. the manipulated slice is then appended to an audio file at a position quantized to the desired tempo (set by norns clock). all the effect probabilities are available to modify in the parameters.
 
@@ -32,6 +40,17 @@ to "break" a beat, this script first determines the tempo of the input file. it 
 - snare db:  volume of added snare in dB (-96-0 dB))
 
 all the resulting audio files are automatically put into the `~/dust/audio/makebreakbeat` folder.
+
+
+## make breakbeats *by splicing*
+
+the *bysplicing* script assumes that the input file is a loop and repeats the loop and then copies random regions, adds effects to that copy, and then pastes the effected copy to a random position along the loop. in contrast to *bybuilding*, the *bysplicing* script essentially makes the audio file in-place.
+
+the *bysplicing* script also has some improvements to effects. I added a non-realtime SuperCollider server to it which can add more complicated effects like filter ramps, tape emulator effects etc.
+
+this script also has the side effect of being able to run on any file, even if it doesn't have onset detection! it simply assumes a specific tempo based on the size of the loop and then repeats it until the requested number of beats is reached.
+
+
 
 ## notes
 
