@@ -428,14 +428,15 @@ end
 
 
 os.cmd("rm -f /tmp/breaktemp-*")
-local fname="0.wav"
+local fname="amen_resampled.wav"
+-- local fname="0.wav"
 fname=audio.silence_trim(fname)
 fname=audio.silence_add(fname,0.1)
-local bpm=160
+local bpm=177
 local beats=math.floor(audio.length(fname)/(60/bpm))
 fname=audio.trim(fname,0,beats*60/bpm)
 -- TODO: figure out if its too few beats
-fname=audio.repeat_n(fname,2)
+fname=audio.repeat_n(fname,4)
 local total_beats=math.floor(audio.length(fname)/(60/bpm))
 print(total_beats)
 os.cmd("cp "..fname.." original.wav")
@@ -459,21 +460,27 @@ for i=1,30 do
 end
 -- copy and reverse and paste
 for i=1,5 do 
-	local start_beat=math.random(8,total_beats-8)
-	local length_beat=math.random(1,3)
-	local paste_beat=math.random(4,total_beats-4-length_beat)
+	local start_beat=math.random(8,total_beats*2-8)
+	local length_beat=math.random(1,2)
+	local paste_beat=math.random(4,total_beats*2-4-length_beat)
 	local crossfade=0.1
-	local piece=audio.reverse(audio.trim(fname,60/bpm*start_beat-crossfade,60/bpm*length_beat+crossfade*2))
-	fname=audio.paste(fname,piece,60/bpm*paste_beat,crossfade)
+	local piece=audio.reverse(audio.trim(fname,60/bpm/2*start_beat-crossfade,60/bpm/2*length_beat+crossfade*2))
+	fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
 end
 -- copy and stutter and paste
 local before_stutter=fname
 for i=1,3 do 
-	local crossfade=0.005
-	local beat_start=math.random(4,total_beats-4)
-	local piece=audio.stutter(before_stutter,60/bpm/4,60/bpm*beat_start,16,crossfade,0.001)
-	fname=audio.paste(fname,piece,60/bpm*4*math.random(1,8),crossfade)
+  local crossfade=0.005
+  local beat_start=math.random(4,total_beats*4-4)
+  local piece=audio.stutter(before_stutter,60/bpm/4,60/bpm/4*beat_start,8,crossfade,0.001)
+  fname=audio.paste(fname,piece,60/bpm/4*math.random(16,total_beats*4-16),crossfade)
 end
+-- for i=1,3 do 
+--   local crossfade=0.005
+--   local beat_start=math.random(4,total_beats*4-4)
+--   local piece=audio.stutter(before_stutter,60/bpm/4,60/bpm*beat_start,16,crossfade,0.001)
+--   fname=audio.paste(fname,piece,60/bpm*4*math.random(1,total_beats*4/4),crossfade)
+-- end
 os.cmd("cp "..fname.." mangled.wav")
 
 
