@@ -1,8 +1,11 @@
 // sclang render.scd
 (
 var mainServer = Server(\Local2, NetAddr("127.0.0.1", 57112));
-var server = Server(\nrt, NetAddr("127.0.0.1", 57114), options:ServerOptions.new.numOutputBusChannels_(2));
+var serverOptions=ServerOptions.new.numOutputBusChannels_(2);
+var server;
 var score;
+serverOptions.sampleRate=48000;
+server = Server(\nrt, NetAddr("127.0.0.1", 57114), options:serverOptions);
 SynthDef("lpf_rampup", {
 	arg out=0,  dur=30;
 	var duration=BufDur.ir(0);
@@ -108,18 +111,24 @@ score={
 	});
 };
 mainServer.waitForBoot({
-	var oscExit = OSCFunc({ arg msg, time, addr, recvPort; [msg, time, addr, recvPort].postln; server.free; mainServer.free; 0.exit; }, '/quit',recvPort:57113);
-	var oscScore = OSCFunc({ arg msg, time, addr, recvPort;
-		var inFile=msg[1].asString;
-		var outFile=msg[2].asString;
-		var synthDefinition=msg[3].asSymbol;
-		var durationScaling=msg[4].asFloat;
-		var oscCallbackPort=msg[5].asInteger;
-		[msg, time, addr, recvPort].postln;
-		score.value(inFile,outFile,synthDefinition,durationScaling,oscCallbackPort);
-		"finished".postln;
-	}, '/score',recvPort:57113);
-	File.new("/tmp/breaktemp-scready", "w");
-	"ready".postln;
+	Routine {
+		var oscExit;
+		var oscScore;
+		thisProcess.openUDPPort(57113).postln;
+		oscExit = OSCFunc({ arg msg, time, addr, recvPort; [msg, time, addr, recvPort].postln; server.free; mainServer.free; 0.exit; }, '/quit',recvPort:57113);
+		oscScore = OSCFunc({ arg msg, time, addr, recvPort;
+			var inFile=msg[1].asString;
+			var outFile=msg[2].asString;
+			var synthDefinition=msg[3].asSymbol;
+			var durationScaling=msg[4].asFloat;
+			var oscCallbackPort=msg[5].asInteger;
+			[msg, time, addr, recvPort].postln;
+			score.value(inFile,outFile,synthDefinition,durationScaling,oscCallbackPort);
+			"finished".postln;
+		}, '/score',recvPort:57113);
+		1.wait;
+		File.new("/tmp/mangler/breaktemp-scready", "w");
+		"ready".postln;
+	}.play;
 });
 )

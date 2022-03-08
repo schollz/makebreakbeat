@@ -50,7 +50,7 @@ end
 
 function string.random_filename(suffix,prefix)
   suffix=suffix or ".wav"
-  prefix=prefix or "/tmp/breaktemp-"
+  prefix=prefix or "/tmp/mangler/breaktemp-"
   return prefix..string.random(8)..suffix
 end
 
@@ -294,7 +294,7 @@ function audio.silence_add(fname,silence_length)
   os.cmd("sox -n -r "..sample_rate.." -c "..channels.." "..silence_file.." trim 0.0 "..silence_length)
   -- combine with original file
   os.cmd("sox "..fname.." "..silence_file.." "..fname2)
-  os.cmd("rm "..silence_file)
+  os.cmd("rm -f "..silence_file)
   return fname2
 end
 
@@ -363,6 +363,7 @@ function audio.copy_and_paste2(fname,copy_start,copy_stop,paste_start)
 	os.cmd(string.format("sox %s %s trim 0 %f",fname,part1,paste_start+e))
 	os.cmd(string.format("sox %s %s trim %f",fname,part2,paste_start+copy_stop-copy_start-e-l))
 	os.cmd(string.format("sox %s %s %s %s splice %f %f",part1,piece,part2,fname2,paste_start+e,paste_start+e+copy_stop-copy_start+e+l+e))
+  os.cmd(string.format("rm -f %s %s %s",part1,part2,piece))
 	return fname2
 end
 
@@ -380,6 +381,7 @@ function audio.copy_and_paste(fname,copy_start,copy_stop,paste_start,crossfade)
 	os.cmd(string.format("sox %s %s trim %f",fname,part2,paste_start+copy_length-e))
 	os.cmd(string.format("sox %s %s %s splice %f,%f,%f",part1,piece,splice1,paste_start+e,e,l))
 	os.cmd(string.format("sox %s %s %s splice %f,%f,%f",splice1,part2,fname2,paste_start+copy_length+e,e,l))
+  os.cmd(string.format("rm -f %s %s %s %s",piece,part1,part2,splice1))
 	return fname2
 end
 
@@ -398,7 +400,16 @@ function audio.paste(fname,piece,paste_start,crossfade)
 	os.cmd(string.format("sox %s %s trim %f",fname,part2,paste_start+copy_length-e*3))
 	os.cmd(string.format("sox %s %s %s splice %f,%f,%f",part1,piece,splice1,paste_start+e,e,l))
 	os.cmd(string.format("sox %s %s %s splice %f,%f,%f",splice1,part2,fname2,paste_start+copy_length+e,e,l))
+  os.cmd(string.format("rm -f %s %s %s",part1,part2,splice1))
 	return fname2
+end
+
+function audio.sample_rate(fname,sr,ch)
+  sr=sr or 48000
+  ch=ch or 2
+  local fname2=string.random_filename()
+  os.cmd(string.format("sox -r %d -c %d %s %s",sr,ch,fname,fname2))
+  return fname2
 end
 
 function audio.gain(fname,gain)
@@ -446,252 +457,258 @@ function audio.supercollider_effect(fname,effect)
   if effect=="reverberate" then 
     durationScaling=4
   end
-  os.cmd(string.format('sendosc --host 127.0.0.1 --addr "/score" --port 57113 --recv-port 8888 -s %s -s %s -s %s -s %s -s 8888',fname,fname2,effect,durationScaling))
+  os.cmd(string.format('sendosc --host 127.0.0.1 --addr "/score" --port 57113 --recv-port 57888 -s %s -s %s -s %s -s %s -s 57888',fname,fname2,effect,durationScaling))
   return fname2
 end
 
 
-local progress=0
-local fname="sample.aiff"
-local fname_out="result.wav"
-local target_beats=32
-local new_tempo=nil
-local input_tempo=nil
-local p_reverse=10
-local p_stutter=5
-local p_jump=80
-local p_pitch=10
-local p_reverb=2
-local p_revreverb=2
-local print_help=false
-local tapedeck=false
-for i,v in ipairs(arg) do
-  if string.find(v,"input") and string.find(v,"tempo") then
-    input_tempo=tonumber(arg[i+1]) or input_tempo
-  elseif string.find(v,"save") and string.find(v,"onset") then
-    save_onset=true
-  elseif string.find(v,"strip") and string.find(v,"silence") then
-    strip_silence=true
-  elseif string.find(v,"make") and string.find(v,"movie") then
-    make_movie=true
-  elseif string.find(v,"-i") and fname=="sample.aiff" then
-    fname=arg[i+1]
-    for j=2,100 do
-      local a=arg[i+j]
-      if string.find(a,"-") or a==nil then
-        break
+function run()
+  local progress=0
+  local fname="sample.aiff"
+  local fname_out="result.wav"
+  local target_beats=32
+  local new_tempo=nil
+  local input_tempo=nil
+  local p_reverse=10
+  local p_stutter=5
+  local p_jump=80
+  local p_pitch=10
+  local p_reverb=2
+  local p_revreverb=2
+  local print_help=false
+  local tapedeck=false
+  for i,v in ipairs(arg) do
+    if string.find(v,"input") and string.find(v,"tempo") then
+      input_tempo=tonumber(arg[i+1]) or input_tempo
+    elseif string.find(v,"save") and string.find(v,"onset") then
+      save_onset=true
+    elseif string.find(v,"strip") and string.find(v,"silence") then
+      strip_silence=true
+    elseif string.find(v,"make") and string.find(v,"movie") then
+      make_movie=true
+    elseif string.find(v,"-i") and fname=="sample.aiff" then
+      fname=arg[i+1]
+      for j=2,100 do
+        local a=arg[i+j]
+        if string.find(a,"-") or a==nil then
+          break
+        end
+        fname=fname.." "..a
       end
-      fname=fname.." "..a
+      if string.find(fname," ") then
+        local fname2=string.random_filename()
+        print("cp '"..fname.."' "..fname2)
+        os.cmd("cp '"..fname.."' "..fname2)
+        fname=fname2
+      end
+    elseif string.find(v,"-o") then
+      fname_out=arg[i+1]
+    elseif string.find(v,"reverse") then
+      p_reverse=tonumber(arg[i+1]) or p_reverse
+    elseif string.find(v,"stutter") then
+      p_stutter=tonumber(arg[i+1]) or p_stutter
+    elseif string.find(v,"tapedeck") then
+      tapedeck=true
+    elseif string.find(v,"pitch") then
+      p_pitch=tonumber(arg[i+1]) or p_pitch
+    elseif string.find(v,"jump") then
+      p_jump=tonumber(arg[i+1]) or p_jump
+    elseif string.find(v,"revreverb") then
+      p_revreverb=tonumber(arg[i+1]) or p_revreverb
+    elseif string.find(v,"reverb") then
+      p_reverb=tonumber(arg[i+1]) or p_reverb
+    elseif string.find(v,"help") then
+      print_help=true
+    elseif string.find(v,"-b") then
+      target_beats=tonumber(arg[i+1])
+    elseif string.find(v,"-t") then
+      new_tempo=tonumber(arg[i+1]) or new_tempo
+      if new_tempo then 
+        new_tempo=math.floor(new_tempo)
+      end
+    elseif string.find(v,"-debug") then
+      debugging=true
     end
-    if string.find(fname," ") then
-      local fname2=string.random_filename()
-      print("cp '"..fname.."' "..fname2)
-      os.cmd("cp '"..fname.."' "..fname2)
-      fname=fname2
-    end
-  elseif string.find(v,"-o") then
-    fname_out=arg[i+1]
-  elseif string.find(v,"reverse") then
-    p_reverse=tonumber(arg[i+1]) or p_reverse
-  elseif string.find(v,"stutter") then
-    p_stutter=tonumber(arg[i+1]) or p_stutter
-  elseif string.find(v,"tapedeck") then
-    tapedeck=true
-  elseif string.find(v,"pitch") then
-    p_pitch=tonumber(arg[i+1]) or p_pitch
-  elseif string.find(v,"jump") then
-    p_jump=tonumber(arg[i+1]) or p_jump
-  elseif string.find(v,"revreverb") then
-    p_revreverb=tonumber(arg[i+1]) or p_revreverb
-  elseif string.find(v,"reverb") then
-    p_reverb=tonumber(arg[i+1]) or p_reverb
-  elseif string.find(v,"help") then
-    print_help=true
-  elseif string.find(v,"-b") then
-    target_beats=tonumber(arg[i+1])
-  elseif string.find(v,"-t") then
-    new_tempo=tonumber(arg[i+1]) or new_tempo
-    if new_tempo then 
-      new_tempo=math.floor(new_tempo)
-    end
-  elseif string.find(v,"-debug") then
-    debugging=true
   end
-end
 
-if #arg<2 or print_help then
-  print([[NAME
- 
-    dnb.lua - generative drum & bass
- 
-DESCRIPTION
- 
-  -i, --input string
-      input filename
- 
-  --input-tempo value
-      tempo of input file (defaults to determine automatically)
- 
-  -o, --output string
-      output filename
- 
-  -b, --beats value
-      number of beats
- 
-  -t, --tempo value
-      tempo of generated beat
- 
-  --debug
-      debug mode (lots of output)
- 
-  --reverse value
-      probability of reversing (0-100%, default 10%)
- 
-  --stutter value
-      probability of stutter (0-100%, default 5%)
- 
-  --pitch value
-      probability of pitch up (0-100%, default 10%)
- 
-  --reverb value
-      probability of adding reverb tail to kick/snare (0-100%, default 2%)
-]])
-else
-  if os.capture("command -v sox")=="" then
-    print("need to install sox first")
+  if #arg<2 or print_help then
+    print([[NAME
+   
+      dnb.lua - generative drum & bass
+   
+  DESCRIPTION
+   
+    -i, --input string
+        input filename
+   
+    --input-tempo value
+        tempo of input file (defaults to determine automatically)
+   
+    -o, --output string
+        output filename
+   
+    -b, --beats value
+        number of beats
+   
+    -t, --tempo value
+        tempo of generated beat
+   
+    --debug
+        debug mode (lots of output)
+   
+    --reverse value
+        probability of reversing (0-100%, default 10%)
+   
+    --stutter value
+        probability of stutter (0-100%, default 5%)
+   
+    --pitch value
+        probability of pitch up (0-100%, default 10%)
+   
+    --reverb value
+        probability of adding reverb tail to kick/snare (0-100%, default 2%)
+  ]])
   else
-    os.cmd("rm -f /tmp/breaktemp-*")
-    os.cmd("echo 0 > /tmp/breaktemp-progress")
-    os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
-    os.cmd("sclang nrt_server.supercollider  &")
-    while not os.file_exists("/tmp/breaktemp-scready") do 
-      os.execute("sleep 0.1")
-    end
-    fname=audio.silence_trim(fname)
-    local bpm=input_tempo or audio.tempo(fname)
-    print("bpm: "..bpm)
-    fname=audio.silence_add(fname,0.1)
-    local beats=math.floor(audio.length(fname)/(60/bpm))
-    fname=audio.trim(fname,0,beats*60/bpm)
-    beats=audio.length(fname)/(60/bpm)
-    while beats<target_beats do 
-      fname=audio.repeat_n(fname,2)
+    if os.capture("command -v sox")=="" then
+      print("need to install sox first")
+    else
+      os.cmd("rm -rf /tmp/mangler")
+      os.cmd("mkdir -p /tmp/mangler")
+      os.cmd("echo 0 > /tmp/mangler/breaktemp-progress")
+      os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
+      os.cmd("sclang nrt_server.supercollider  &")
+      while not os.file_exists("/tmp/mangler/breaktemp-scready") do 
+        os.execute("sleep 0.1")
+      end
+      -- convert to 48000
+      fname=audio.sample_rate(fname,48000,2)
+      fname=audio.silence_trim(fname)
+      local bpm=input_tempo or audio.tempo(fname)
+      print("bpm: "..bpm)
+      fname=audio.silence_add(fname,0.1)
+      local beats=math.floor(audio.length(fname)/(60/bpm))
+      fname=audio.trim(fname,0,beats*60/bpm)
       beats=audio.length(fname)/(60/bpm)
-      print(beats)
-    end
-    fname=audio.trim(fname,0,target_beats*60/bpm)
+      while beats<target_beats do 
+        fname=audio.repeat_n(fname,2)
+        beats=audio.length(fname)/(60/bpm)
+        print(beats)
+      end
+      fname=audio.trim(fname,0,target_beats*60/bpm)
 
-    local total_beats=math.floor(audio.length(fname)/(60/bpm))
-    print(total_beats)
-    os.cmd("cp "..fname.." original.wav")
-    local total_things=math.floor(total_beats*p_pitch/100)
-      +math.floor(total_beats*p_jump/100)
-      +math.floor(total_beats*p_reverse/100)
-      +math.floor(total_beats*p_revreverb/100)
-      +math.floor(total_beats*p_stutter/100/2)*2
+      local total_beats=math.floor(audio.length(fname)/(60/bpm))
+      print(total_beats)
+      os.cmd("cp "..fname.." original.wav")
+      local total_things=math.floor(total_beats*p_pitch/100)
+        +math.floor(total_beats*p_jump/100)
+        +math.floor(total_beats*p_reverse/100)
+        +math.floor(total_beats*p_revreverb/100)
+        +math.floor(total_beats*p_stutter/100/2)*2
 
-    local fname_original=fname
-    -- copy and pitch and paste
-    for i=1,math.floor(total_beats*p_pitch/100) do 
-      progress=progress+1
-      os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/breaktemp-progress")
-      local start_beat=math.random(8,total_beats-8)
-      local length_beat=math.random(1,4)/8
-      local paste_beat=start_beat
-      local crossfade=0.005
-      local piece=audio.pitch(audio.trim(fname,60/bpm*start_beat-crossfade,60/bpm*length_beat+crossfade*2),2)
-      fname=audio.paste(fname,piece,60/bpm*paste_beat,crossfade)
+      local fname_original=fname
+      -- copy and pitch and paste
+      for i=1,math.floor(total_beats*p_pitch/100) do 
+        progress=progress+1
+        os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/mangler/breaktemp-progress")
+        local start_beat=math.random(8,total_beats-8)
+        local length_beat=math.random(1,4)/8
+        local paste_beat=start_beat
+        local crossfade=0.005
+        local piece=audio.pitch(audio.trim(fname,60/bpm*start_beat-crossfade,60/bpm*length_beat+crossfade*2),2)
+        fname=audio.paste(fname,piece,60/bpm*paste_beat,crossfade)
+      end
+      -- basic copy and paste
+      for i=1,math.floor(total_beats*p_jump/100) do 
+        progress=progress+1
+        os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/mangler/breaktemp-progress")
+        local start_beat=math.random(4,total_beats-4)*2
+        local length_beat=math.random(1,3)*2
+        local paste_beat=math.random(2,total_beats-length_beat/2-2)*2
+        local crossfade=0.05
+        fname=audio.copy_and_paste(fname,60/bpm/2*start_beat,60/bpm/2*(start_beat+length_beat),60/bpm/2*paste_beat,crossfade)
+      end
+      -- copy and reverse and paste
+      for i=1,math.floor(total_beats*p_reverse/100) do 
+        progress=progress+1
+        os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/mangler/breaktemp-progress")
+        local start_beat=math.random(2,total_beats-2)*2
+        local length_beat=math.random(1,3)
+        local paste_beat=math.random(2,math.floor(total_beats-total_beats/2-4))*2
+        local crossfade=0.05
+        local piece=audio.reverse(audio.trim(fname,60/bpm/2*start_beat-crossfade,60/bpm/2*length_beat+crossfade*2))
+        fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
+      end
+      -- copy and reverberate and reverse and paste
+      for i=1,math.floor(total_beats*p_revreverb/100) do 
+        progress=progress+1
+        os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/mangler/breaktemp-progress")
+        local start_beat=math.random(3,total_beats-3)
+        local length_beat=math.random(1,2)
+        local paste_beat=math.random(2,math.floor(total_beats-total_beats/2-4))*2
+        local crossfade=0.005
+        local piece=audio.trim(fname_original,60/bpm*start_beat-crossfade,60/bpm/4*length_beat+crossfade*2)
+        piece=audio.supercollider_effect(piece,"reverberate")
+        piece=audio.reverse(piece)
+        fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
+      end
+      -- copy and reverberate and paste
+      for i=1,math.floor(total_beats*p_reverb/100) do 
+        progress=progress+1
+        os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/mangler/breaktemp-progress")
+        local start_beat=math.random(3,total_beats-3)
+        local length_beat=math.random(1,2)
+        local paste_beat=math.random(2,math.floor(total_beats-total_beats/2-4))*2
+        local crossfade=0.005
+        local piece=audio.trim(fname_original,60/bpm*start_beat-crossfade,60/bpm/4*length_beat+crossfade*2)
+        piece=audio.supercollider_effect(piece,"reverberate")
+        fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
+      end
+      print("fname",fname)
+      -- copy and stutter and paste
+      for i=1,math.floor(total_beats*p_stutter/100/2) do 
+        progress=progress+1
+        os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/mangler/breaktemp-progress")
+        local crossfade=0.005
+        local beat_start=math.random(4,total_beats-4)
+        local piece=audio.stutter(fname_original,60/bpm/4,60/bpm*beat_start,12,crossfade,0.001,nil)
+        piece=audio.supercollider_effect(piece,"lpf_rampup")
+        fname=audio.paste(fname,piece,60/bpm/4*math.random(12,total_beats*4-16),crossfade)
+      end
+      -- -- copy and stutter small and paste
+      -- for i=1,math.floor(total_beats*p_stutter/100/2) do 
+      --   progress=progress+1
+      --   os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/mangler/breaktemp-progress")
+      --   local crossfade=0.005
+      --   local beat_start=math.random(4,total_beats-4)
+      --   local piece=audio.stutter(fname_original,60/bpm/4,60/bpm*beat_start,12,crossfade,0.001,nil)
+      --   piece=audio.supercollider_effect(piece,"lpf_rampup")
+      --   fname=audio.paste(fname,piece,60/bpm/4*math.random(8,total_beats*4-16),crossfade)
+      -- end
+      -- for i=1,2 do 
+      --   local crossfade=0.005
+      --   local beat_start=math.random(4,total_beats*4-4)
+      --   local piece=audio.stutter(fname_original,60/bpm/4,60/bpm/4*beat_start,8,crossfade,0.001)
+      --   fname=audio.paste(fname,piece,60/bpm/4*math.random(16,total_beats*4-16),crossfade)
+      -- end
+      -- for i=1,2 do 
+      --   local crossfade=0.005
+      --   local beat_start=math.random(4,total_beats*4-4)
+      --   local piece=audio.stutter(fname_original,60/bpm/4,60/bpm/4*beat_start,4,crossfade,0.001)
+      --   fname=audio.paste(fname,piece,60/bpm/4*math.random(16,total_beats*4-16),crossfade)
+      -- end
+      -- cleanup
+      if new_tempo~=nil and new_tempo~=bpm then 
+        fname=audio.retempo(fname,bpm,new_tempo)
+      end
+      fname=audio.supercollider_effect(fname,"filter_in_out")
+      if tapedeck then 
+        fname=audio.supercollider_effect(fname,"tapedeck")
+      end
+      os.cmd("mv "..fname.." "..fname_out)
+      os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
+      os.cmd("rm -rf /tmp/mangler")
     end
-    -- basic copy and paste
-    for i=1,math.floor(total_beats*p_jump/100) do 
-      progress=progress+1
-      os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/breaktemp-progress")
-      local start_beat=math.random(4,total_beats-4)*2
-      local length_beat=math.random(1,3)*2
-      local paste_beat=math.random(2,total_beats-length_beat/2-2)*2
-      local crossfade=0.05
-      fname=audio.copy_and_paste(fname,60/bpm/2*start_beat,60/bpm/2*(start_beat+length_beat),60/bpm/2*paste_beat,crossfade)
-    end
-    -- copy and reverse and paste
-    for i=1,math.floor(total_beats*p_reverse/100) do 
-      progress=progress+1
-      os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/breaktemp-progress")
-      local start_beat=math.random(2,total_beats-2)*2
-      local length_beat=math.random(1,3)
-      local paste_beat=math.random(2,math.floor(total_beats-total_beats/2-4))*2
-      local crossfade=0.05
-      local piece=audio.reverse(audio.trim(fname,60/bpm/2*start_beat-crossfade,60/bpm/2*length_beat+crossfade*2))
-      fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
-    end
-    -- copy and reverberate and reverse and paste
-    for i=1,math.floor(total_beats*p_revreverb/100) do 
-      progress=progress+1
-      os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/breaktemp-progress")
-      local start_beat=math.random(3,total_beats-3)
-      local length_beat=math.random(1,2)
-      local paste_beat=math.random(2,math.floor(total_beats-total_beats/2-4))*2
-      local crossfade=0.005
-      local piece=audio.trim(fname_original,60/bpm*start_beat-crossfade,60/bpm/4*length_beat+crossfade*2)
-      piece=audio.supercollider_effect(piece,"reverberate")
-      piece=audio.reverse(piece)
-      fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
-    end
-    -- copy and reverberate and paste
-    for i=1,math.floor(total_beats*p_reverb/100) do 
-      progress=progress+1
-      os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/breaktemp-progress")
-      local start_beat=math.random(3,total_beats-3)
-      local length_beat=math.random(1,2)
-      local paste_beat=math.random(2,math.floor(total_beats-total_beats/2-4))*2
-      local crossfade=0.005
-      local piece=audio.trim(fname_original,60/bpm*start_beat-crossfade,60/bpm/4*length_beat+crossfade*2)
-      piece=audio.supercollider_effect(piece,"reverberate")
-      fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
-    end
-    -- copy and stutter and paste
-    for i=1,math.floor(total_beats*p_stutter/100/2) do 
-      progress=progress+1
-      os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/breaktemp-progress")
-      local crossfade=0.005
-      local beat_start=math.random(4,total_beats-4)
-      local piece=audio.stutter(fname_original,60/bpm/4,60/bpm*beat_start,12,crossfade,0.001,nil)
-      piece=audio.supercollider_effect(piece,"lpf_rampup")
-      fname=audio.paste(fname,piece,60/bpm/4*math.random(12,total_beats*4-16),crossfade)
-    end
-    -- copy and stutter small and paste
-    for i=1,math.floor(total_beats*p_stutter/100/2) do 
-      progress=progress+1
-      os.cmd('echo '..(math.round(progress/total_things*1000)/10).." >> /tmp/breaktemp-progress")
-      local crossfade=0.005
-      local beat_start=math.random(4,total_beats-4)
-      local piece=audio.stutter(fname_original,60/bpm/4,60/bpm*beat_start,12,crossfade,0.001,nil)
-      piece=audio.supercollider_effect(piece,"lpf_rampup")
-      fname=audio.paste(fname,piece,60/bpm/4*math.random(8,total_beats*4-16),crossfade)
-    end
-    -- for i=1,2 do 
-    --   local crossfade=0.005
-    --   local beat_start=math.random(4,total_beats*4-4)
-    --   local piece=audio.stutter(fname_original,60/bpm/4,60/bpm/4*beat_start,8,crossfade,0.001)
-    --   fname=audio.paste(fname,piece,60/bpm/4*math.random(16,total_beats*4-16),crossfade)
-    -- end
-    -- for i=1,2 do 
-    --   local crossfade=0.005
-    --   local beat_start=math.random(4,total_beats*4-4)
-    --   local piece=audio.stutter(fname_original,60/bpm/4,60/bpm/4*beat_start,4,crossfade,0.001)
-    --   fname=audio.paste(fname,piece,60/bpm/4*math.random(16,total_beats*4-16),crossfade)
-    -- end
-    -- cleanup
-    if new_tempo~=nil and new_tempo~=bpm then 
-      fname=audio.retempo(fname,bpm,new_tempo)
-    end
-    fname=audio.supercollider_effect(fname,"filter_in_out")
-    if tapedeck then 
-      fname=audio.supercollider_effect(fname,"tapedeck")
-    end
-    os.cmd("mv "..fname.." "..fname_out)
-    os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
-    os.cmd("rm /tmp/breaktemp-*")
   end
 end
 
-
+run()

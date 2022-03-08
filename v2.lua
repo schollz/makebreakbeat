@@ -41,6 +41,7 @@ function init()
     {"pitch",5},
     {"reverb",5},
     {"rereverb",5},
+    {"jump",20},
   }
   for _,op in ipairs(break_options) do
     params:add{type="number",id="break_"..op[1],name=op[1],min=0,max=100,default=op[2]}
@@ -87,7 +88,7 @@ function do_startup()
 end
 
 function make_beat()
-  if util.file_exists("/tmp/breaktemp-progress") or making_beat then
+  if util.file_exists("/tmp/mangler/breaktemp-progress") or making_beat then
     do return end
   end
   params:write()
@@ -104,10 +105,14 @@ function make_beat()
     end
   end
   local cmd="cd ".._path.code.."makebreakbeat/lib/ && lua mangler.lua"
-  cmd=cmd.." -t "..tempo.." -b "..(params:get("break_beats")+1)
+  cmd=cmd.." -t "..tempo.." -b "..params:get("break_beats")
   cmd=cmd.." -o "..fname.." ".." -i "..params:get("break_file")
   for _,op in ipairs(break_options) do
     cmd=cmd.." --"..op[1].." "..params:get("break_"..op[1])
+  end
+  if util.file_exists("/usr/share/SuperCollider/Extensions/PortedPlugins/AnalogTape_scsynth.so") and
+    params:get("break_tapedeck")==2 then
+    cmd=cmd.." -tapedeck"
   end
   cmd=cmd.." &"
   print(cmd)
@@ -152,7 +157,7 @@ function redraw()
     screen.move(64,32)
     screen.text_center("installing aubio and sox . . . ")
   else
-    if util.file_exists("/tmp/breaktemp-progress") then
+    if util.file_exists("/tmp/mangler/breaktemp-progress") then
       draw_progress()
     else
       if making_beat==true then
@@ -178,7 +183,7 @@ function draw_progress()
   screen.text_center(string.format("generating beat from"))
   screen.move(64,32+5)
   screen.text_center(string.format("'%s'",filename))
-  local progress=tonumber(util.os_capture("tail -n1 /tmp/breaktemp-progress"))
+  local progress=tonumber(util.os_capture("tail -n1 /tmp/mangler/breaktemp-progress"))
   if progress==nil then
     do return end
   end
