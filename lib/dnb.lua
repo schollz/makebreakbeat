@@ -1,8 +1,9 @@
 #!/usr/bin/env lua
 
 -- infinitedigits
--- v1.0.0 first version
+-- v1.1.0 add -strip-silence
 -- v1.0.1 allow filenames with spaces
+-- v1.0.0 first version
 
 math.randomseed(os.time())
 
@@ -414,7 +415,7 @@ function Beat:new (o)
 
   -- determine onsets
   o.onsets={}
-  local threshold=0.9
+  local threshold=1.0
   while #o.onsets<4 and threshold>0 do
     o.onsets={}
     -- TODO: make option to do /2 or /4
@@ -442,10 +443,16 @@ function Beat:onset_split()
   local pad_left=string.random_filename()
   local pad_right=string.random_filename()
   local concat_file=string.random_filename()
-  local sample_rate,channels=audio.get_info(self.fname)
-  local duration=audio.length(self.fname)
+  local fname=self.fname
+  if self.strip_silence==true then
+    local fname2=string.random_filename()
+    os.cmd("sox "..fname.." "..fname2.." silence 1 0.1 0.05% reverse silence 1 0.1 0.05% reverse")
+    fname=fname2
+  end
+  local sample_rate,channels=audio.get_info(fname)
+  local duration=audio.length(fname)
   if self.make_movie then
-    os.cmd("sox "..self.fname.." "..concat_file)
+    os.cmd("sox "..fname.." "..concat_file)
     os.cmd("audiowaveform -i "..concat_file.." -o /tmp/breaktemp-onsetall.png --background-color ffffff --waveform-color d3d3d3 -w 960 -h 512 --no-axis-labels --pixels-per-second "..math.floor(960/duration).." > /dev/null 2>&1")
   end
   for i,v in ipairs(self.onsets) do
@@ -456,14 +463,14 @@ function Beat:onset_split()
       -- local sn=math.floor(e/(60/self.tempo/4))
       -- e=sn*60/self.tempo/4+0.02
       if i==#self.onsets then
-        os.cmd("sox "..self.fname.." "..onset_name.." trim "..s)
+        os.cmd("sox "..fname.." "..onset_name.." trim "..s)
         if self.make_movie then
           os.cmd("sox -n -r "..sample_rate.." -c "..channels.." "..pad_left.." trim 0.0 "..self.onsets[i-1])
           os.cmd("sox "..pad_left.." "..onset_name.." "..concat_file)
           os.cmd("audiowaveform -i "..concat_file.." -o "..onset_name..".png --background-color ffffff00 --waveform-color 545454 -w 960 -h 512 --no-axis-labels --pixels-per-second "..math.floor(960/duration).." > /dev/null 2>&1")
         end
       else
-        os.cmd("sox "..self.fname.." "..onset_name.." trim "..s.." "..e)
+        os.cmd("sox "..fname.." "..onset_name.." trim "..s.." "..e)
 
         if self.make_movie then
           -- create an image
@@ -854,11 +861,14 @@ local make_bassline=false
 local no_logo=false
 local global_lfo=false
 local print_help=false
+local strip_silence=false
 for i,v in ipairs(arg) do
   if string.find(v,"input") and string.find(v,"tempo") then
     input_tempo=tonumber(arg[i+1]) or input_tempo
   elseif string.find(v,"save") and string.find(v,"onset") then
     save_onset=true
+  elseif string.find(v,"strip") and string.find(v,"silence") then
+    strip_silence=true
   elseif string.find(v,"make") and string.find(v,"movie") then
     make_movie=true
   elseif string.find(v,"-i") and fname=="sample.aiff" then
@@ -918,7 +928,7 @@ for i,v in ipairs(arg) do
     beats=tonumber(arg[i+1])
   elseif string.find(v,"-t") then
     new_tempo=tonumber(arg[i+1]) or new_tempo
-  elseif string.find(v,"-d") then
+  elseif string.find(v,"-debug") then
     debugging=true
   end
 end
@@ -932,6 +942,9 @@ DESCRIPTION
  
   -i, --input string
       input filename
+ 
+  --strip-silence
+      strip silence from beginning and end before processing
  
   --input-tempo value
       tempo of input file (defaults to determine automatically)
@@ -948,8 +961,8 @@ DESCRIPTION
   -t, --tempo value
       tempo of generated beat
  
-  -d, --debug
-      debug mode
+  --debug
+      debug mode (lots of output)
  
   --no-logo
       don't show logo
@@ -1015,7 +1028,7 @@ else
       no_logo=true
     end
     os.cmd('echo 0 >> /tmp/breaktemp-progress')
-    local b=Beat:new({global_lfo=global_lfo,fname=fname,tempo=input_tempo,make_movie=make_movie,make_bassline=make_bassline,no_logo=no_logo})
+    local b=Beat:new({strip_silence=strip_silence,global_lfo=global_lfo,fname=fname,tempo=input_tempo,make_movie=make_movie,make_bassline=make_bassline,no_logo=no_logo})
     b:str()
     b:generate(fname_out,beats,new_tempo,p_reverse,p_stutter,p_pitch,p_trunc,p_deviation,p_kick,p_snare,p_half,p_reverb,p_stretch,kick_mix,snare_mix)
     os.cmd("rm /tmp/breaktemp-*")
