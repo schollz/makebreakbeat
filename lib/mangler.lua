@@ -1,6 +1,6 @@
 math.randomseed(os.time())
 
-debugging=true
+debugging=false
 function os.file_exists(name)
   local f=io.open(name,"r")
   if f~=nil then
@@ -259,24 +259,21 @@ end
 local audio={}
 
 function audio.tempo(fname)
-  s=os.capture("aubioonset -i "..fname.." -O hfc -f -s -60 -t 0.1 -B 256 -H 128")
-  local last_val=0
-  local bpms={}
-  for v in s:gmatch("%S+") do
-    v=tonumber(v)
-    if v~=nil then
-      if v>0 then
-        local bpm=60/(v-last_val)
-        while bpm>200 do
-          bpm=bpm/2
-        end
-        table.insert(bpms,bpm)
+  local audio_length=audio.length(fname)
+  local closet_bpm={0,100000}
+  for bpm=100,200 do 
+    local measures=audio_length/((60/bpm)*4)
+    if math.round(measures)%2==0 then 
+      local dif=math.abs(math.round(measures)-measures)
+      dif=dif-math.round(measures)/60
+      -- print(bpm,math.round(measures),measures,dif)
+      if dif<closet_bpm[2] then 
+        closet_bpm[2]=dif 
+        closet_bpm[1]=bpm
       end
-      last_val=v
     end
   end
-
-  return math.round(math.trim(bpms,1.5))
+  return closet_bpm[1]
 end
 
 function audio.length(fname)
@@ -399,9 +396,15 @@ function audio.paste(fname,piece,paste_start,crossfade)
 end
 
 function audio.gain(fname,gain)
-	local fname2=string.random_filename()
-	os.cmd(string.format("sox %s %s gain %f",fname,fname2,gain))
-	return fname2
+  local fname2=string.random_filename()
+  os.cmd(string.format("sox %s %s gain %f",fname,fname2,gain))
+  return fname2
+end
+
+function audio.stretch(fname,stretch)
+  local fname2=string.random_filename()
+  os.cmd(string.format("sox %s %s stretch %f",fname,fname2,stretch))
+  return fname2
 end
 
 function audio.stutter(fname,stutter_length,pos_start,count,crossfade_piece,crossfade_stutter)
@@ -413,13 +416,14 @@ function audio.stutter(fname,stutter_length,pos_start,count,crossfade_piece,cros
 	os.cmd(string.format("sox %s %s trim %f %f",fname,partFirst,pos_start-crossfade_piece,stutter_length+crossfade_piece+crossfade_stutter))
 	os.cmd(string.format("sox %s %s trim %f %f",fname,partMiddle,pos_start-crossfade_stutter,stutter_length+crossfade_stutter+crossfade_stutter))
 	os.cmd(string.format("sox %s %s trim %f %f",fname,partLast,pos_start-crossfade_stutter,stutter_length+crossfade_piece+crossfade_stutter))
+  local gain_amt=count>8 and -1.5 or -2
 	for i=1,count do 
 		local fnameNext=""
 		if i==1 then 
-			fnameNext=audio.gain(partFirst,-2*(count-i))
+			fnameNext=audio.gain(partFirst,gain_amt*(count-i))
 		else
 			fnameNext=string.random_filename()
-			os.cmd(string.format("sox %s %s %s splice %f,%f,0",fname2,audio.gain(i<count and partMiddle or partLast,-2*(count-i)),fnameNext,audio.length(fname2),crossfade_stutter))
+			os.cmd(string.format("sox %s %s %s splice %f,%f,0",fname2,audio.gain(i<count and partMiddle or partLast,gain_amt*(count-i)),fnameNext,audio.length(fname2),crossfade_stutter))
 		end
 		fname2=fnameNext
 	end
@@ -428,51 +432,77 @@ end
 
 
 os.cmd("rm -f /tmp/breaktemp-*")
+-- local fname="172-32-100.wav"
+-- local fname="Bpm124_Blink01_PL_key_bpm124.wav"
 local fname="amen_resampled.wav"
--- local fname="0.wav"
+local bpm=audio.tempo(fname)
 fname=audio.silence_trim(fname)
+print("bpm guess",bpm)
 fname=audio.silence_add(fname,0.1)
-local bpm=177
 local beats=math.floor(audio.length(fname)/(60/bpm))
 fname=audio.trim(fname,0,beats*60/bpm)
--- TODO: figure out if its too few beats
-fname=audio.repeat_n(fname,4)
+beats=audio.length(fname)/(60/bpm)
+print(beats)
+
+fname=audio.repeat_n(fname,2)
 local total_beats=math.floor(audio.length(fname)/(60/bpm))
 print(total_beats)
 os.cmd("cp "..fname.." original.wav")
 
 
+local fname_original=fname
 -- copy and pitch and paste
--- for i=1,10 do 
--- 	local start_beat=math.random(8,total_beats-8)
--- 	local length_beat=math.random(1,4)/8
--- 	local paste_beat=start_beat
--- 	local crossfade=0.005
--- 	local piece=audio.pitch(audio.trim(fname,60/bpm*start_beat-crossfade,60/bpm*length_beat+crossfade*2),2)
--- 	fname=audio.paste(fname,piece,60/bpm*paste_beat,crossfade)
--- end
+for i=1,3 do 
+	local start_beat=math.random(8,total_beats-8)
+	local length_beat=math.random(1,4)/8
+	local paste_beat=start_beat
+	local crossfade=0.005
+	local piece=audio.pitch(audio.trim(fname,60/bpm*start_beat-crossfade,60/bpm*length_beat+crossfade*2),2)
+	fname=audio.paste(fname,piece,60/bpm*paste_beat,crossfade)
+end
 -- basic copy and paste
-for i=1,30 do 
-	local start_beat=math.random(8,total_beats*2-8)
-	local length_beat=math.random(4,8)
-	local paste_beat=math.random(4,total_beats*2-4-length_beat)
-	fname=audio.copy_and_paste(fname,60/bpm/2*start_beat,60/bpm/2*(start_beat+length_beat),60/bpm/2*paste_beat)
+for i=1,40 do 
+	local start_beat=math.random(2,total_beats-2)*2
+	local length_beat=math.random(2,4)*2
+  local paste_beat=math.random(2,total_beats-length_beat/2-4)*2
+  local crossfade=0.05
+	fname=audio.copy_and_paste(fname,60/bpm/2*start_beat,60/bpm/2*(start_beat+length_beat),60/bpm/2*paste_beat,crossfade)
 end
 -- copy and reverse and paste
-for i=1,5 do 
-	local start_beat=math.random(8,total_beats*2-8)
-	local length_beat=math.random(1,2)
-	local paste_beat=math.random(4,total_beats*2-4-length_beat)
-	local crossfade=0.1
-	local piece=audio.reverse(audio.trim(fname,60/bpm/2*start_beat-crossfade,60/bpm/2*length_beat+crossfade*2))
-	fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
+for i=1,2 do 
+  local start_beat=math.random(2,total_beats-2)*2
+  local length_beat=math.random(2,4)
+  local paste_beat=math.random(2,math.floor(total_beats-total_beats/2-4))*2
+  local crossfade=0.05
+  local piece=audio.reverse(audio.trim(fname,60/bpm/2*start_beat-crossfade,60/bpm/2*length_beat+crossfade*2))
+  fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
+end
+-- copy and stretch and paste
+for i=1,2 do 
+  local start_beat=math.random(4,total_beats*2-4)
+  local length_beat=math.random(1,4)
+  local paste_beat=math.random(4,total_beats*2-4-length_beat)
+  local crossfade=0.05
+  local piece=audio.stretch(audio.trim(fname,60/bpm/2*start_beat-crossfade,60/bpm/4*length_beat+crossfade*2),2)
+  fname=audio.paste(fname,piece,60/bpm/2*paste_beat,crossfade)
 end
 -- copy and stutter and paste
-local before_stutter=fname
-for i=1,3 do 
+for i=1,4 do 
   local crossfade=0.005
   local beat_start=math.random(4,total_beats*4-4)
-  local piece=audio.stutter(before_stutter,60/bpm/4,60/bpm/4*beat_start,8,crossfade,0.001)
+  local piece=audio.stutter(fname_original,60/bpm/4,60/bpm/4*beat_start,12,crossfade,0.001)
+  fname=audio.paste(fname,piece,60/bpm/4*math.random(16,total_beats*4-16),crossfade)
+end
+for i=1,2 do 
+  local crossfade=0.005
+  local beat_start=math.random(4,total_beats*4-4)
+  local piece=audio.stutter(fname_original,60/bpm/4,60/bpm/4*beat_start,8,crossfade,0.001)
+  fname=audio.paste(fname,piece,60/bpm/4*math.random(16,total_beats*4-16),crossfade)
+end
+for i=1,2 do 
+  local crossfade=0.005
+  local beat_start=math.random(4,total_beats*4-4)
+  local piece=audio.stutter(fname_original,60/bpm/4,60/bpm/4*beat_start,4,crossfade,0.001)
   fname=audio.paste(fname,piece,60/bpm/4*math.random(16,total_beats*4-16),crossfade)
 end
 -- for i=1,3 do 
