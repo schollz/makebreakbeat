@@ -18,7 +18,7 @@ UI=require("ui")
 engine.name="Makebreakbeat"
 
 function init()
-  print("v1.0.0")
+  print("v2.0.0")
   playing=true
   loading=true
   startup_done=false
@@ -34,24 +34,18 @@ function init()
     end
   }
   params:add_file("break_file","load sample",_path.audio.."makebreakbeat/amen_resampled.wav")
-  params:add{type="number",id="break_beats",name="beats",min=4,max=128,default=16}
+  params:add{type="number",id="break_beats",name="beats",min=16,max=128,default=32}
   break_options={
-    {"deviation",10},
     {"reverse",10},
     {"stutter",20},
     {"pitch",5},
-    {"trunc",2},
-    {"half",1},
     {"reverb",5},
-    {"stretch",2},
-    {"kick",50},
-    {"snare",20},
+    {"rereverb",5},
   }
   for _,op in ipairs(break_options) do
     params:add{type="number",id="break_"..op[1],name=op[1],min=0,max=100,default=op[2]}
   end
-  params:add{type="number",id="break_kickdb",name="kick db",min=-96,max=0,default=-6}
-  params:add{type="number",id="break_snaredb",name="snare db",min=-96,max=0,default=-6}
+  params:add_option("break_tapedeck","tapedeck",{"no","yes"})
 
   lattice=lattice_:new()
   lattice_beats=-1
@@ -109,14 +103,12 @@ function make_beat()
       break
     end
   end
-  local cmd="lua ".._path.code.."makebreakbeat/lib/dnb.lua --no-logo --snare-file /home/we/dust/code/makebreakbeat/lib/snare.wav --kick-file /home/we/dust/code/makebreakbeat/lib/kick.wav "
+  local cmd="cd ".._path.code.."makebreakbeat/lib/ && lua mangler.lua"
   cmd=cmd.." -t "..tempo.." -b "..(params:get("break_beats")+1)
   cmd=cmd.." -o "..fname.." ".." -i "..params:get("break_file")
   for _,op in ipairs(break_options) do
     cmd=cmd.." --"..op[1].." "..params:get("break_"..op[1])
   end
-  cmd=cmd.." --snare-mix ".." "..params:get("break_snaredb")
-  cmd=cmd.." --kick-mix ".." "..params:get("break_kickdb")
   cmd=cmd.." &"
   print(cmd)
   clock.run(function()

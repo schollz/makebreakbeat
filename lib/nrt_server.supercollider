@@ -62,6 +62,16 @@ SynthDef("tapedeck", {
 	snd = snd * EnvGen.ar(Env.new([0, 1, 1, 0], [0,dur,0]), doneAction:2);
 	Out.ar(out, snd);
 }).load(server);
+SynthDef("filter_in_out", {
+	arg out=0,  dur=30;
+	var duration=BufDur.ir(0);
+	var snd = PlayBuf.ar(2,0);
+	snd = RLPF.ar(snd,
+		LinExp.kr(EnvGen.kr(Env.new([0.1, 1, 1, 0.1], [2,dur-4,2])),0.1,1,100,20000),
+		0.6);
+	snd = snd * EnvGen.ar(Env.new([0, 1, 1, 0], [0,dur,0]), doneAction:2);
+	Out.ar(out, snd);
+}).load(server);
 
 score={
 	arg inFile,outFile,synthDefinition,durationScaling,oscCallbackPort;
@@ -110,5 +120,6 @@ mainServer.waitForBoot({
 		"finished".postln;
 	}, '/score',recvPort:57113);
 	File.new("/tmp/breaktemp-scready", "w");
+	"ready".postln;
 });
 )
