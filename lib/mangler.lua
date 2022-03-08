@@ -477,6 +477,7 @@ function run()
   local p_revreverb=2
   local print_help=false
   local tapedeck=false
+  local server_started=false
   for i,v in ipairs(arg) do
     if string.find(v,"input") and string.find(v,"tempo") then
       input_tempo=tonumber(arg[i+1]) or input_tempo
@@ -519,6 +520,8 @@ function run()
       p_reverb=tonumber(arg[i+1]) or p_reverb
     elseif string.find(v,"help") then
       print_help=true
+    elseif string.find(v,"server") and string.find(v,"started") then
+      server_started=true
     elseif string.find(v,"-b") then
       target_beats=tonumber(arg[i+1])
     elseif string.find(v,"-t") then
@@ -575,8 +578,10 @@ function run()
       os.cmd("rm -rf /tmp/mangler")
       os.cmd("mkdir -p /tmp/mangler")
       os.cmd("echo 0 > /tmp/mangler/breaktemp-progress")
-      os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
-      os.cmd("sclang nrt_server.supercollider  &")
+      if not server_started then 
+        os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
+        os.cmd("sclang nrt_server.supercollider  &")
+      end
       while not os.file_exists("/tmp/mangler/breaktemp-scready") do 
         os.execute("sleep 0.1")
       end
@@ -705,7 +710,9 @@ function run()
         fname=audio.supercollider_effect(fname,"tapedeck")
       end
       os.cmd("mv "..fname.." "..fname_out)
-      os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
+      if not server_started then 
+        os.cmd('sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
+      end
       os.cmd("rm -rf /tmp/mangler")
     end
   end
