@@ -281,7 +281,7 @@ function do_cleanup()
   os.cmd('/home/we/dust/code/makebreakbeat/lib/sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
   os.cmd("rm -f /tmp/nrt-scready")
   os.cmd("rm -rf /tmp/mangler")
-  os.cmd("pkill -f 'nrt_server'")
+  --os.cmd("pkill -f 'nrt_server'")
   if lattice.superclock_id~=nil then 
 	  print("canceling lattice clock")
 	  clock.cancel(lattice.superclock_id)
