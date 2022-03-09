@@ -16,6 +16,7 @@ UI=require("ui")
 engine.name="Makebreakbeat"
 
 PROGRESS_FILE="/tmp/mangler/breaktemp-progress"
+progress_file_exists=false
 max_index=0
 samplei=1
 making_beat=nil
@@ -28,7 +29,8 @@ end
 
 audi_o={}
 function audi_o.length(fname)
-  local s=os.capture("sox "..fname.." -n stat 2>&1  | grep Length | awk '{print $3}'")
+  print("getting length of",fname)
+  local s=util.os_capture("sox "..fname.." -n stat 2>&1  | grep Length | awk '{print $3}'")
   return tonumber(s)
 end
 
@@ -54,10 +56,6 @@ function init()
         current_tempo=clock.get_tempo()
         max_index=get_max_index()
       end
-      if not startup_done then
-        startup_done=true
-        do_startup()
-      end
       lattice_beats=lattice_beats+1
       for i=1,3 do
         if sample[i].beats>0 then
@@ -72,6 +70,7 @@ function init()
             sample[i].debounce_index=nil
             if sample[i].index>0 then
               local fname=filename_from_index(sample[i].index)
+	      print("loading "..fname)
               if util.file_exists(fname) then
                 engine.load_track(i,fname)
                 sample[i].beats=audi_o.length(fname)/(60/clock.get_tempo())
@@ -80,6 +79,7 @@ function init()
           end
         end
       end
+      progress_file_exists=util.file_exists(PROGRESS_FILE)
       redraw()
     end,
     division=1/4
@@ -87,6 +87,8 @@ function init()
   lattice:start()
 
   params:default()
+
+  do_startup()
 end
 
 function filename_from_index(index)
@@ -107,11 +109,13 @@ function get_max_index()
 end
 
 function toggle_sample(i)
+  print("toggling sample "..i)
   sample[i].playing=not sample[i].playing
   if not sample[i].playing then
     engine.amp(i,0)
   else
     engine.amp(i,1)
+    sample[i].debounce_index=1
   end
 end
 
@@ -120,8 +124,10 @@ function enc(k,d)
     samplei=util.clamp(samplei+(d>0 and 1 or-1),1,3)
   elseif k==3 then
     d=d>0 and 1 or-1
-    sample[samplei].index=util.clamp(sample[samplei]+d,0,max_index)
+    sample[samplei].index=util.clamp(sample[samplei].index+d,0,max_index)
+    if sample[samplei].playing then 
     sample[samplei].debounce_index=4
+    end
   end
 end
 
@@ -135,7 +141,9 @@ function key(k,z)
       lattice_beats=-1
       lattice:hard_restart()
     else
+if not ( sample[samplei].index==0 and sample[samplei].playing==false) then 
       toggle_sample(samplei)
+      end
     end
   end
 
@@ -144,30 +152,32 @@ end
 function redraw()
   screen.clear()
   for i=1,3 do
-    local x=128/4*i
+    local x=128/4*i-4
     local icon=UI.PlaybackIcon.new(x,1,6,4)
-    screen.level(samplei==i and 15 or 7)
-    icon.status=sample[samplei].playing and 1 or 4
+    screen.level(samplei==i and 15 or 4)
+    icon.status=sample[i].playing and 1 or 4
     icon:redraw()
-    screen.move(x,10)
-    screen.text(""..(sample[samplei].index==0 and "none" or sample[samplei].index))
+    screen.level(samplei==i and 15 or 4)
+    screen.move(x+3,15)
+    screen.text_center(""..(sample[i].index==0 and "none" or sample[i].index))
   end
   screen.level(15)
   if loading==true then
     screen.move(64,32)
     screen.text_center("loading, please wait . . . ")
   else
-    if util.file_exists(PROGRESS_FILE) then
+    if progress_file_exists then
       draw_progress()
     else
       if making_beat~=nil then
         sample[making_beat].debounce_index=4
         making_beat=nil
+        max_index=get_max_index()
       end
       screen.move(64,32-5)
-      screen.text_center("press K2 to generate beat")
+      screen.text_center("press K2 to generate")
       screen.move(64,32+5)
-      screen.text_center("press K3 to stop/start beat")
+      screen.text_center("press K3 to stop/start")
     end
   end
   screen.update()
@@ -192,6 +202,7 @@ function draw_progress()
 end
 
 function cleanup()
+	print("cleaning up script...")
   do_cleanup()
 end
 
@@ -220,14 +231,18 @@ function do_startup()
   if not util.file_exists(_path.audio.."makebreakbeat/amen_resampled.wav") then
     os.execute("cp ".._path.code.."makebreakbeat/lib/amen_resampled.wav ".._path.audio.."makebreakbeat/")
   end
-  clock.run(function()
     os.cmd("chmod +x /home/we/dust/code/makebreakbeat/lib/sendosc")
     os.cmd("rm -rf /tmp/mangler")
     os.cmd("pkill -f 'nrt_server'")
     os.cmd("rm -f /tmp/nrt-scready")
     os.cmd('/home/we/dust/code/makebreakbeat/lib/sendosc --host 127.0.0.1 --addr "/quit" --port 57113')
-    os.cmd("cd /home/we/dust/code/makebreakbeat/lib && sclang nrt_server.supercollider &")
+  if clock_startup~=nil then 
+	  clock.cancel(clock_startup)
+  end
+  clock_startup=clock.run(function()
+    os.execute("cd /home/we/dust/code/makebreakbeat/lib && sclang nrt_server.supercollider &")
   end)
+  startup_done=true
 end
 
 function do_beat(si)
@@ -238,6 +253,7 @@ function do_beat(si)
   end
   params:write()
   making_beat=si
+  sample[si].index=max_index+1
   local tempo=math.floor(clock.get_tempo())
   local fname=filename_from_index(max_index+1)
   local cmd="cd ".._path.code.."makebreakbeat/lib/ && lua mangler.lua --server-started"
@@ -252,7 +268,10 @@ function do_beat(si)
   end
   cmd=cmd.." &"
   print(cmd)
-  clock.run(function()
+  if cmd_clock~=nil then 
+	  clock.cancel(cmd_clock)
+  end
+  cmd_clock=clock.run(function()
     os.execute(cmd)
   end)
   print("running command!")
@@ -263,4 +282,17 @@ function do_cleanup()
   os.cmd("rm -f /tmp/nrt-scready")
   os.cmd("rm -rf /tmp/mangler")
   os.cmd("pkill -f 'nrt_server'")
+  if lattice.superclock_id~=nil then 
+	  print("canceling lattice clock")
+	  clock.cancel(lattice.superclock_id)
+  end
+  if cmd_clock~=nil then 
+	  print("canceling clock cmd")
+	  clock.cancel(cmd_clock)
+  end
+  if clock_startup~=nil then 
+	  print("canceling clock startup")
+	  clock.cancel(clock_startup)
+  end
+  print("finished cleaning")
 end

@@ -72,7 +72,7 @@ Engine_Makebreakbeat : CroneEngine {
         }).add; 
 
         this.addCommand("load_track","is", { arg msg;
-            var key=msg[1].asInteger;
+            var key=msg[1];
             var fname=msg[2];
             Buffer.read(Server.default, fname,action:{ arg buf;
                 buf.postln;
@@ -100,7 +100,7 @@ Engine_Makebreakbeat : CroneEngine {
         params.keysDo({ arg key;
             this.addCommand(key, "if", { arg msg;
                 var playerKey=msg[1].asInteger;
-                if (playerMakebreakbeat.notNil,{
+                if (playerMakebreakbeat.at(playerKey).notNil,{
                     playerMakebreakbeat.at(playerKey).set(key,msg[2]);
                 });
             });
