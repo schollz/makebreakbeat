@@ -22,13 +22,18 @@ then
 fi
 
 FOLDER=/home/we/.local/share/SuperCollider/Extensions/
+FILEO=/usr/share/SuperCollider/Extensions/PortedPlugins/AnalogTape_scsynth.so
 FILE=/home/we/.local/share/SuperCollider/Extensions/PortedPlugins/AnalogTape_scsynth.so
 if [ -d "$FOLDER" ]; then 
 	echo "folder exists" > /dev/null
    if [ -f "$FILE" ]; then 
 	   echo "ok" > /dev/null
    else
-	   echo "installing PortedPlugins..."
-	   cd /tmp && wget https://github.com/schollz/tapedeck/releases/download/PortedPlugins/PortedPlugins.tar.gz && tar -xvzf PortedPlugins.tar.gz && rm PortedPlugins.tar.gz && sudo rsync -avrP PortedPlugins /home/we/.local/share/SuperCollider/Extensions/
+		if [ -f "$FILEO" ]; then 
+			echo "ok" > /dev/null
+		else
+			echo "installing PortedPlugins..."
+			cd /tmp && wget https://github.com/schollz/tapedeck/releases/download/PortedPlugins/PortedPlugins.tar.gz && tar -xvzf PortedPlugins.tar.gz && rm PortedPlugins.tar.gz && sudo rsync -avrP PortedPlugins /home/we/.local/share/SuperCollider/Extensions/
+		fi
    fi
 fi

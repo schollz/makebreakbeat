@@ -15,6 +15,7 @@ Engine_Makebreakbeat : CroneEngine {
 
     alloc {
         // Makebreakbeat specific v0.0.1
+        playerMakebreakbeat=Dictionary.new;
 
         // two players per buffer (4 players total)
         SynthDef("playerMakebreakbeat",{ 
@@ -70,20 +71,23 @@ Engine_Makebreakbeat : CroneEngine {
             Out.ar(out,sndfinal);
         }).add; 
 
-        this.addCommand("load_track","s", { arg msg;
-            Buffer.read(Server.default, msg[1],action:{ arg buf;
+        this.addCommand("load_track","is", { arg msg;
+            var key=msg[1].asInteger;
+            var fname=msg[2];
+            Buffer.read(Server.default, fname,action:{ arg buf;
                 buf.postln;
-                if (playerMakebreakbeat.notNil,{
-                    playerMakebreakbeat.set(\bufnum,buf.bufnum);
+                if (playerMakebreakbeat.at(key).notNil,{
+                    playerMakebreakbeat.at(key).set(\bufnum,buf.bufnum);
                 },{
-                    playerMakebreakbeat=Synth("playerMakebreakbeat",[\bufnum,buf.bufnum,\t_trig,1])
+                    playerMakebreakbeat.put(key,Synth("playerMakebreakbeat",[\bufnum,buf.bufnum,\t_trig,1]));
                 })
             }); 
         });
 
-        this.addCommand("tozero","", { arg msg;
-            if (playerMakebreakbeat.notNil,{
-                playerMakebreakbeat.set(\t_trig,1);
+        this.addCommand("tozero","i", { arg msg;
+            var key=msg[1].asInteger;
+            if (playerMakebreakbeat.at(key).notNil,{
+                playerMakebreakbeat.at(key).set(\t_trig,1);
             });
         });
 
@@ -94,9 +98,10 @@ Engine_Makebreakbeat : CroneEngine {
         ]);
 
         params.keysDo({ arg key;
-            this.addCommand(key, "f", { arg msg;
+            this.addCommand(key, "if", { arg msg;
+                var playerKey=msg[1].asInteger;
                 if (playerMakebreakbeat.notNil,{
-                    playerMakebreakbeat.set(key,msg[1]);
+                    playerMakebreakbeat.at(playerKey).set(key,msg[2]);
                 });
             });
         });
@@ -107,7 +112,7 @@ Engine_Makebreakbeat : CroneEngine {
 
     free {
         // Makebreakbeat Specific v0.0.1
-        playerMakebreakbeat.free;
+        playerMakebreakbeat.keysValuesDo({ arg key, value; value.free; });
         sampleBuffMakebreakbeat.free;
         // ^ Makebreakbeat specific
     }
